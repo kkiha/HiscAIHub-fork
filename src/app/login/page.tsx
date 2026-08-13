@@ -61,10 +61,10 @@ export default function LoginPage() {
           </div>
           <div className="login-feat">
             <div className="login-feat-icon">
-              <HeartMini />
+              <ActivityMini />
             </div>
             <div>
-              <div className="login-feat-title">좋아요 · 댓글 · 복사 수</div>
+              <div className="login-feat-title">실행 · 댓글 · 복사</div>
               <div className="login-feat-desc">
                 실제로 많이 쓰이는 프롬프트가 자연스럽게 상위에 노출
               </div>
@@ -141,10 +141,13 @@ function UploadMini() {
   );
 }
 
-function HeartMini() {
+function ActivityMini() {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-      <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" />
+      <path d="M4 13a8 8 0 0 1 8-8 8.7 8.7 0 0 1 6 2.4L20 9" />
+      <path d="M20 4v5h-5" />
+      <path d="M20 13a8 8 0 0 1-8 8 8.7 8.7 0 0 1-6-2.4L4 17" />
+      <path d="M4 22v-5h5" />
     </svg>
   );
 }

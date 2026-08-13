@@ -1,6 +1,6 @@
 // AI 공유 허브 — Prisma 스키마
-// 좋아요=공개(집계 캐시 필드 + 알림), 저장=비공개(집계·알림 없음, 존재 여부만 조회).
-// Prompt/Agent에 대한 좋아요·저장·댓글·신고는 각각 promptId/agentId 중 하나만 채우는
+// 저장=비공개(집계·알림 없음, 존재 여부만 조회).
+// Prompt/Agent에 대한 저장·댓글·신고는 각각 promptId/agentId 중 하나만 채우는
 // nullable dual-FK 패턴 사용 (둘 다 null이거나 둘 다 set되지 않는 것은 애플리케이션에서 보장).
 
 generator client {
@@ -36,7 +36,6 @@ enum ReportAction {
 }
 
 enum NotificationType {
-  like
   comment
 }
 
@@ -72,7 +71,6 @@ model User {
   prompts              Prompt[]
   agents               Agent[]
   comments             Comment[]
-  likes                Like[]
   saves                Save[]
   reportsFiled         Report[]       @relation("Reporter")
   auditLogs            AuditLog[]
@@ -97,7 +95,6 @@ model Prompt {
   category    String
   status      ContentStatus @default(published)
   official    Boolean       @default(false)
-  likeCount   Int           @default(0)
   copyCount   Int           @default(0)
   runCount    Int           @default(0)
   authorId    String
@@ -106,7 +103,6 @@ model Prompt {
   updatedAt   DateTime      @updatedAt
 
   comments      Comment[]
-  likes         Like[]
   saves         Save[]
   reports       Report[]
   notifications Notification[]
@@ -125,7 +121,6 @@ model Agent {
   category     String
   status       ContentStatus @default(published)
   official     Boolean       @default(false)
-  likeCount    Int           @default(0)
   runCount     Int           @default(0)
   authorId     String
   author       User          @relation(fields: [authorId], references: [id])
@@ -133,7 +128,6 @@ model Agent {
   updatedAt    DateTime      @updatedAt
 
   comments      Comment[]
-  likes         Like[]
   saves         Save[]
   reports       Report[]
   notifications Notification[]
@@ -154,23 +148,6 @@ model Comment {
   agent     Agent?   @relation(fields: [agentId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
 
-  @@index([promptId])
-  @@index([agentId])
-}
-
-// 공개. 토글 시 Prompt/Agent.likeCount 갱신 + 대상 작성자에게 Notification 생성.
-model Like {
-  id        String   @id @default(cuid())
-  userId    String
-  user      User     @relation(fields: [userId], references: [id])
-  promptId  String?
-  prompt    Prompt?  @relation(fields: [promptId], references: [id], onDelete: Cascade)
-  agentId   String?
-  agent     Agent?   @relation(fields: [agentId], references: [id], onDelete: Cascade)
-  createdAt DateTime @default(now())
-
-  @@unique([userId, promptId])
-  @@unique([userId, agentId])
   @@index([promptId])
   @@index([agentId])
 }

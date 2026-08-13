@@ -14,16 +14,14 @@ export type PromptDTO = {
   author: string;
   dept: string;
   ava: string;
-  likes: number;
   copies: number;
   runs: number;
-  liked: boolean;
   saved: boolean;
   mine: boolean;
   comments: CommentDTO[];
 };
 
-// 실제로 존재하지 않을 cuid — 비로그인/조회 전용 컨텍스트에서 likes/saves를 빈 배열로 만들기 위한 sentinel.
+// 실제로 존재하지 않을 cuid — 비로그인/조회 전용 컨텍스트에서 saves를 빈 배열로 만들기 위한 sentinel.
 const NONE = "__none__";
 
 export function fmtDate(d: Date): string {
@@ -34,7 +32,6 @@ function promptInclude(userId: string | null) {
   return {
     author: true,
     comments: { include: { user: true }, orderBy: { createdAt: "asc" as const } },
-    likes: { where: { userId: userId ?? NONE } },
     saves: { where: { userId: userId ?? NONE } },
   } satisfies Prisma.PromptInclude;
 }
@@ -63,10 +60,8 @@ function serializePrompt(p: LoadedPrompt, userId: string | null): PromptDTO {
     author: p.author.name,
     dept: p.author.dept,
     ava: p.author.name.charAt(0),
-    likes: p.likeCount,
     copies: p.copyCount,
     runs: p.runCount,
-    liked: p.likes.length > 0,
     saved: p.saves.length > 0,
     mine: userId != null && p.authorId === userId,
     comments: p.comments.map(serializeComment),

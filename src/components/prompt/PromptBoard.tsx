@@ -7,8 +7,6 @@ import PromptFormModal, { type PromptDraft } from "./PromptFormModal";
 import PromptCreateModal from "./PromptCreateModal";
 import { launchClaude } from "@/lib/launch-claude";
 import {
-  HeartIcon,
-  HeartFillIcon,
   ZapIcon,
   CopyIcon,
   CommentIcon,
@@ -20,12 +18,12 @@ import {
   StarIcon,
 } from "@/components/icons";
 
-type Award = { prompt: PromptDTO; kind: "like" | "hot" | "useful" };
+type Award = { prompt: PromptDTO; kind: "run" | "hot" | "useful" };
 
 const AWARD_META: Record<Award["kind"], { cls: string; icon: React.ReactNode; text: string }> = {
-  like: { cls: "like", icon: <HeartFillIcon size={13} />, text: "최근 7일간 가장 좋아요가 많았어요" },
+  run: { cls: "run", icon: <ZapIcon size={13} />, text: "최근 가장 많이 실행된 프롬프트예요" },
   hot: { cls: "hot", icon: <FlameIcon size={13} />, text: "Hot · 이번 주 댓글이 가장 많아요" },
-  useful: { cls: "useful", icon: <StarIcon size={13} />, text: "최근 7일간 가장 유용한 프롬프트 (실행·복사 최다)" },
+  useful: { cls: "useful", icon: <StarIcon size={13} />, text: "최근 가장 많이 복사된 프롬프트예요" },
 };
 
 function pickAwards(list: PromptDTO[]): Award[] {
@@ -38,11 +36,11 @@ function pickAwards(list: PromptDTO[]): Award[] {
     excluded.add(winner.id);
     return winner;
   }
-  const like = pick((p) => p.likes);
+  const run = pick((p) => p.runs);
   const hot = pick((p) => p.comments.length);
-  const useful = pick((p) => p.runs + p.copies);
+  const useful = pick((p) => p.copies);
   const awards: Award[] = [];
-  if (like) awards.push({ prompt: like, kind: "like" });
+  if (run) awards.push({ prompt: run, kind: "run" });
   if (hot) awards.push({ prompt: hot, kind: "hot" });
   if (useful) awards.push({ prompt: useful, kind: "useful" });
   return awards;
@@ -87,13 +85,6 @@ export default function PromptBoard({
     setToast(msg);
     window.clearTimeout((showToast as unknown as { _t?: number })._t);
     (showToast as unknown as { _t?: number })._t = window.setTimeout(() => setToast(""), 2200);
-  }
-
-  async function toggleLike(id: string) {
-    const res = await fetch(`/api/prompts/${id}/like`, { method: "POST" });
-    if (!res.ok) return;
-    const data = await res.json();
-    setPrompts((prev) => prev.map((p) => (p.id === id ? { ...p, liked: data.liked, likes: data.likes } : p)));
   }
 
   async function toggleSave(id: string) {
@@ -251,7 +242,6 @@ export default function PromptBoard({
       <PromptDetailModal
         prompt={detail}
         onClose={() => setDetailId(null)}
-        onToggleLike={toggleLike}
         onToggleSave={toggleSave}
         onCopy={copyPrompt}
         onRun={runPrompt}
@@ -332,7 +322,6 @@ function PromptCard({
           <span className="dept">{p.dept}</span>
         </div>
         <div className="mini-acts">
-          <div className="mini-act"><HeartIcon size={13} /> {p.likes}</div>
           <div className="mini-act"><ZapIcon size={13} /> {p.runs}</div>
           <div className="mini-act"><CopyIcon size={13} /> {p.copies}</div>
           <div className="mini-act"><CommentIcon size={13} /> {p.comments.length}</div>

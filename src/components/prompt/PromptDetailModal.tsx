@@ -5,8 +5,6 @@ import type { PromptDTO } from "@/lib/prompts";
 import {
   XIcon,
   ZapFillIcon,
-  HeartIcon,
-  HeartFillIcon,
   BookmarkIcon,
   BookmarkFillIcon,
   CopyIcon,
@@ -18,7 +16,6 @@ import {
 export default function PromptDetailModal({
   prompt,
   onClose,
-  onToggleLike,
   onToggleSave,
   onCopy,
   onRun,
@@ -28,7 +25,6 @@ export default function PromptDetailModal({
 }: {
   prompt: PromptDTO | null;
   onClose: () => void;
-  onToggleLike: (id: string) => void;
   onToggleSave: (id: string) => void;
   onCopy: (p: PromptDTO) => void;
   onRun: (p: PromptDTO) => void;
@@ -76,16 +72,12 @@ export default function PromptDetailModal({
         <div className="stat-strip">
           <span><ZapFillIcon size={13} /> Claude 실행 <b>{p.runs}</b></span>
           <span><CopyIcon size={13} /> 복사 <b>{p.copies}</b></span>
-          <span><HeartIcon size={13} /> 좋아요 <b>{p.likes}</b></span>
         </div>
         <hr className="divider" />
 
         <div className="actions">
           <button className="act-btn run" onClick={() => onRun(p)}>
             <ZapFillIcon size={14} /> Claude로 실행
-          </button>
-          <button className={`act-btn ${p.liked ? "liked" : ""}`} onClick={() => onToggleLike(p.id)}>
-            {p.liked ? <HeartFillIcon size={14} /> : <HeartIcon size={14} />} {p.likes}
           </button>
           <button className={`act-btn ${p.saved ? "saved" : ""}`} onClick={() => onToggleSave(p.id)}>
             {p.saved ? <BookmarkFillIcon size={14} /> : <BookmarkIcon size={14} />} {p.saved ? "저장됨" : "저장"}

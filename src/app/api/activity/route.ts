@@ -23,19 +23,9 @@ export async function GET() {
     take: 30,
   });
 
-  const myLikes = await db.like.findMany({
-    where: { userId: user.id, OR: [{ promptId: { not: null } }, { agentId: { not: null } }] },
-    include: {
-      prompt: { include: { author: true } },
-      agent: { include: { author: true } },
-    },
-    orderBy: { createdAt: "desc" },
-  });
-
   return NextResponse.json({
     notifications: notifications.map((n) => ({
       id: n.id,
-      type: n.type,
       actor: n.actor.name,
       ava: n.actor.name.charAt(0),
       title: n.prompt?.title ?? n.agent?.name ?? "",
@@ -44,16 +34,5 @@ export async function GET() {
       text: n.commentText,
       time: timeAgo(n.createdAt),
     })),
-    myLikes: myLikes
-      .map((l) => {
-        if (l.prompt) {
-          return { kind: "prompt" as const, id: l.promptId as string, title: l.prompt.title, author: l.prompt.author.name, dept: l.prompt.author.dept };
-        }
-        if (l.agent) {
-          return { kind: "agent" as const, id: l.agentId as string, title: l.agent.name, author: l.agent.author.name, dept: l.agent.author.dept };
-        }
-        return null;
-      })
-      .filter((x): x is NonNullable<typeof x> => x !== null),
   });
 }

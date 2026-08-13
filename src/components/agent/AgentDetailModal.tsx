@@ -6,8 +6,6 @@ import {
   XIcon,
   BotIcon,
   DocIcon,
-  HeartIcon,
-  HeartFillIcon,
   BookmarkIcon,
   BookmarkFillIcon,
   CopyIcon,
@@ -21,7 +19,6 @@ import {
 export default function AgentDetailModal({
   agent,
   onClose,
-  onToggleLike,
   onToggleSave,
   onCopyInstructions,
   onComment,
@@ -31,7 +28,6 @@ export default function AgentDetailModal({
 }: {
   agent: AgentDTO | null;
   onClose: () => void;
-  onToggleLike: (id: string) => void;
   onToggleSave: (id: string) => void;
   onCopyInstructions: (a: AgentDTO) => void;
   onComment: (id: string, text: string) => Promise<boolean>;
@@ -96,16 +92,12 @@ export default function AgentDetailModal({
 
         <div className="stat-strip">
           <span><ZapIcon size={13} /> 실행 <b>{a.runs}</b></span>
-          <span><HeartIcon size={13} /> 좋아요 <b>{a.likes}</b></span>
         </div>
         <hr className="divider" />
 
         <div className="actions">
           <button className="act-btn run" onClick={() => onRun(a)}>
             <ZapFillIcon size={14} /> Claude로 실행
-          </button>
-          <button className={`act-btn ${a.liked ? "liked" : ""}`} onClick={() => onToggleLike(a.id)}>
-            {a.liked ? <HeartFillIcon size={14} /> : <HeartIcon size={14} />} {a.likes}
           </button>
           <button className={`act-btn ${a.saved ? "saved" : ""}`} onClick={() => onToggleSave(a.id)}>
             {a.saved ? <BookmarkFillIcon size={14} /> : <BookmarkIcon size={14} />} {a.saved ? "저장됨" : "저장"}

@@ -87,8 +87,8 @@ const STATUS_MAP = { published: "pub", hidden: "hidden", flagged: "flag" } as co
 
 export async function listContent(): Promise<ContentRow[]> {
   const [prompts, agents] = await Promise.all([
-    db.prompt.findMany({ include: { author: true, _count: { select: { likes: true } } }, orderBy: { createdAt: "desc" } }),
-    db.agent.findMany({ include: { author: true, _count: { select: { likes: true } } }, orderBy: { createdAt: "desc" } }),
+    db.prompt.findMany({ include: { author: true }, orderBy: { createdAt: "desc" } }),
+    db.agent.findMany({ include: { author: true }, orderBy: { createdAt: "desc" } }),
   ]);
   const promptRows: ContentRow[] = prompts.map((p) => ({
     id: p.id,
@@ -96,7 +96,7 @@ export async function listContent(): Promise<ContentRow[]> {
     title: p.title,
     author: p.author.name,
     dept: p.author.dept,
-    metric: `실행 ${p.runCount} · ♥ ${p.likeCount}`,
+    metric: `실행 ${p.runCount}`,
     status: STATUS_MAP[p.status],
     official: p.official,
   }));
@@ -106,7 +106,7 @@ export async function listContent(): Promise<ContentRow[]> {
     title: a.name,
     author: a.author.name,
     dept: a.author.dept,
-    metric: `실행 ${a.runCount} · ♥ ${a.likeCount}`,
+    metric: `실행 ${a.runCount}`,
     status: STATUS_MAP[a.status],
     official: a.official,
   }));
@@ -285,33 +285,29 @@ export async function setPerUserDailyLimit(limit: number): Promise<void> {
 // 가장 직접적으로 보여주는 신호라 이걸 채택한다. UsageLog(백엔드 생성 호출·비용)와는 별개 —
 // 그건 사용량·비용 탭에서 그대로 확인 가능.
 // 종합점수 가중치: 실행에 가장 큰 비중을 둔다.
-const SCORE_WEIGHTS = { runs: 50, registrations: 30, likes: 20 };
+const SCORE_WEIGHTS = { runs: 60, registrations: 40 };
 
 type PeriodTotals = {
-  byDept: Map<string, { runs: number; registrations: number; likes: number; activeUsers: Set<string> }>;
-  byUser: Map<string, { name: string; dept: string; runs: number; registrations: number; likes: number }>;
+  byDept: Map<string, { runs: number; registrations: number; activeUsers: Set<string> }>;
+  byUser: Map<string, { name: string; dept: string; runs: number; registrations: number }>;
 };
 
 function ensureDept(m: PeriodTotals["byDept"], dept: string) {
-  if (!m.has(dept)) m.set(dept, { runs: 0, registrations: 0, likes: 0, activeUsers: new Set() });
+  if (!m.has(dept)) m.set(dept, { runs: 0, registrations: 0, activeUsers: new Set() });
   return m.get(dept)!;
 }
 function ensureUser(m: PeriodTotals["byUser"], id: string, name: string, dept: string) {
-  if (!m.has(id)) m.set(id, { name, dept, runs: 0, registrations: 0, likes: 0 });
+  if (!m.has(id)) m.set(id, { name, dept, runs: 0, registrations: 0 });
   return m.get(id)!;
 }
 
 async function collectPeriodTotals(gte: Date, lt?: Date): Promise<PeriodTotals> {
   const range = lt ? { gte, lt } : { gte };
-  const [runLogs, prompts, agents, likes] = await Promise.all([
+  const [runLogs, prompts, agents] = await Promise.all([
     db.auditLog.findMany({ where: { createdAt: range, action: { in: [...RUN_ACTIONS] } }, include: { user: true } }),
     // 프롬프트 제거 시 이 블록에서 Prompt 관련 조회만 삭제하면 된다.
     db.prompt.findMany({ where: { createdAt: range }, include: { author: true } }),
     db.agent.findMany({ where: { createdAt: range }, include: { author: true } }),
-    db.like.findMany({
-      where: { createdAt: range },
-      include: { prompt: { include: { author: true } }, agent: { include: { author: true } } },
-    }),
   ]);
 
   const byDept: PeriodTotals["byDept"] = new Map();
@@ -330,29 +326,21 @@ async function collectPeriodTotals(gte: Date, lt?: Date): Promise<PeriodTotals> 
     ensureDept(byDept, a.author.dept).registrations += 1;
     ensureUser(byUser, a.authorId, a.author.name, a.author.dept).registrations += 1;
   }
-  for (const l of likes) {
-    const author = l.prompt?.author ?? l.agent?.author;
-    if (!author) continue;
-    ensureDept(byDept, author.dept).likes += 1;
-    ensureUser(byUser, author.id, author.name, author.dept).likes += 1;
-  }
-
   return { byDept, byUser };
 }
 
 function scoreOf(
-  row: { runs: number; registrations: number; likes: number },
-  max: { runs: number; registrations: number; likes: number },
+  row: { runs: number; registrations: number },
+  max: { runs: number; registrations: number },
 ): number {
   const part = (v: number, m: number, w: number) => (m > 0 ? (v / m) * w : 0);
-  return Math.round(part(row.runs, max.runs, SCORE_WEIGHTS.runs) + part(row.registrations, max.registrations, SCORE_WEIGHTS.registrations) + part(row.likes, max.likes, SCORE_WEIGHTS.likes));
+  return Math.round(part(row.runs, max.runs, SCORE_WEIGHTS.runs) + part(row.registrations, max.registrations, SCORE_WEIGHTS.registrations));
 }
 
 export type DeptLeaderboardRow = {
   dept: string;
   runs: number;
   registrations: number;
-  likes: number;
   activeUsers: number;
   avgRunsPerUser: number;
   score: number;
@@ -365,9 +353,8 @@ export type PersonLeaderboardRow = {
   dept: string;
   runs: number;
   registrations: number;
-  likes: number;
   score: number;
-  badges: ("runs" | "registrations" | "likes")[];
+  badges: ("runs" | "registrations")[];
   lastActive: string;
 };
 
@@ -385,17 +372,15 @@ export async function getLeaderboardStats(days: number): Promise<{
     db.user.findMany({ select: { id: true, lastActiveAt: true } }).then((rows) => new Map(rows.map((r) => [r.id, r.lastActiveAt]))),
   ]);
 
-  const deptMax = { runs: 0, registrations: 0, likes: 0 };
+  const deptMax = { runs: 0, registrations: 0 };
   for (const v of current.byDept.values()) {
     deptMax.runs = Math.max(deptMax.runs, v.runs);
     deptMax.registrations = Math.max(deptMax.registrations, v.registrations);
-    deptMax.likes = Math.max(deptMax.likes, v.likes);
   }
-  const prevDeptMax = { runs: 0, registrations: 0, likes: 0 };
+  const prevDeptMax = { runs: 0, registrations: 0 };
   for (const v of previous.byDept.values()) {
     prevDeptMax.runs = Math.max(prevDeptMax.runs, v.runs);
     prevDeptMax.registrations = Math.max(prevDeptMax.registrations, v.registrations);
-    prevDeptMax.likes = Math.max(prevDeptMax.likes, v.likes);
   }
 
   const depts: DeptLeaderboardRow[] = Array.from(current.byDept.entries())
@@ -408,7 +393,6 @@ export async function getLeaderboardStats(days: number): Promise<{
         dept,
         runs: v.runs,
         registrations: v.registrations,
-        likes: v.likes,
         activeUsers: v.activeUsers.size,
         avgRunsPerUser: v.activeUsers.size ? Math.round((v.runs / v.activeUsers.size) * 10) / 10 : 0,
         score,
@@ -417,11 +401,10 @@ export async function getLeaderboardStats(days: number): Promise<{
     })
     .sort((a, b) => b.score - a.score);
 
-  const userMax = { runs: 0, registrations: 0, likes: 0 };
+  const userMax = { runs: 0, registrations: 0 };
   for (const v of current.byUser.values()) {
     userMax.runs = Math.max(userMax.runs, v.runs);
     userMax.registrations = Math.max(userMax.registrations, v.registrations);
-    userMax.likes = Math.max(userMax.likes, v.likes);
   }
 
   const individuals: PersonLeaderboardRow[] = Array.from(current.byUser.entries())
@@ -429,7 +412,6 @@ export async function getLeaderboardStats(days: number): Promise<{
       const badges: PersonLeaderboardRow["badges"] = [];
       if (userMax.runs > 0 && v.runs === userMax.runs) badges.push("runs");
       if (userMax.registrations > 0 && v.registrations === userMax.registrations) badges.push("registrations");
-      if (userMax.likes > 0 && v.likes === userMax.likes) badges.push("likes");
       const lastActiveAt = lastActiveById.get(id) ?? null;
       return {
         id,
@@ -437,7 +419,6 @@ export async function getLeaderboardStats(days: number): Promise<{
         dept: v.dept,
         runs: v.runs,
         registrations: v.registrations,
-        likes: v.likes,
         score: scoreOf(v, userMax),
         badges,
         lastActive: lastActiveAt ? fmtDateTime(lastActiveAt) : "-",

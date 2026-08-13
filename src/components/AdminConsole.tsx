@@ -69,12 +69,12 @@ type UsageData = {
 };
 type AuditRow = { id: string; time: string; user: string; action: string; target: string; files: string; status: string };
 type CategoryRow = { id: string; name: string };
-type Badge = "runs" | "registrations" | "likes";
-type DeptRow = { dept: string; runs: number; registrations: number; likes: number; activeUsers: number; avgRunsPerUser: number; score: number; delta: number | null };
-type PersonRow = { id: string; name: string; dept: string; runs: number; registrations: number; likes: number; score: number; badges: Badge[]; lastActive: string };
+type Badge = "runs" | "registrations";
+type DeptRow = { dept: string; runs: number; registrations: number; activeUsers: number; avgRunsPerUser: number; score: number; delta: number | null };
+type PersonRow = { id: string; name: string; dept: string; runs: number; registrations: number; score: number; badges: Badge[]; lastActive: string };
 type LeaderboardData = { depts: DeptRow[]; individuals: PersonRow[]; powerUser: PersonRow | null };
 
-const BADGE_LABEL: Record<Badge, string> = { runs: "실행 1위", registrations: "등록 1위", likes: "좋아요 1위" };
+const BADGE_LABEL: Record<Badge, string> = { runs: "실행 1위", registrations: "등록 1위" };
 
 function RankBadge({ i }: { i: number }) {
   if (i === 0) return <span className="rank-badge gold">1</span>;
@@ -372,7 +372,6 @@ function Dashboard({
   const deptMax = {
     runs: Math.max(0, ...depts.map((x) => x.runs)),
     registrations: Math.max(0, ...depts.map((x) => x.registrations)),
-    likes: Math.max(0, ...depts.map((x) => x.likes)),
   };
   return (
     <>
@@ -445,7 +444,7 @@ function Dashboard({
               <div className="empty-state">이 기간엔 활동 기록이 없어요.</div>
             ) : (
               <table className="tbl dept-tbl">
-                <thead><tr><th>순위</th><th>부서</th><th>종합점수</th><th>Claude 실행</th><th>콘텐츠 등록</th><th>좋아요 획득</th><th>활성 인원</th><th>인당 평균 실행</th><th>전기간 대비</th></tr></thead>
+                <thead><tr><th>순위</th><th>부서</th><th>종합점수</th><th>Claude 실행</th><th>콘텐츠 등록</th><th>활성 인원</th><th>인당 평균 실행</th><th>전기간 대비</th></tr></thead>
                 <tbody>
                   {leaderboard.depts.map((d, i) => (
                     <tr key={d.dept}>
@@ -454,7 +453,6 @@ function Dashboard({
                       <td style={{ fontWeight: 600, color: "var(--org-muted)" }}>{d.score}</td>
                       <td style={heat(d.runs, deptMax.runs)}>{d.runs}</td>
                       <td style={heat(d.registrations, deptMax.registrations)}>{d.registrations}</td>
-                      <td style={heat(d.likes, deptMax.likes)}>{d.likes}</td>
                       <td style={{ color: "var(--text-2)" }}>{d.activeUsers}명</td>
                       <td style={{ color: "var(--text-2)" }}>{d.avgRunsPerUser}회</td>
                       {/* 비교할 이전 기간 활동이 없으면(delta null) 증감이 아니므로 색을 입히지 않는다. */}
@@ -484,7 +482,6 @@ function Dashboard({
                     <div className="power-metrics">
                       <div><b>{leaderboard.powerUser.runs}</b>실행</div>
                       <div><b>{leaderboard.powerUser.registrations}</b>등록</div>
-                      <div><b>{leaderboard.powerUser.likes}</b>좋아요</div>
                     </div>
                   </div>
                 </div>
@@ -499,7 +496,7 @@ function Dashboard({
                   <RankBadge i={i} />
                   <div className="grow">
                     <div className="t">{p.name} · {p.dept}</div>
-                    <div className="m">실행 {p.runs} · 등록 {p.registrations} · 좋아요 {p.likes}{p.badges.length ? ` · ${p.badges.map((b) => BADGE_LABEL[b]).join(", ")}` : ""}</div>
+                    <div className="m">실행 {p.runs} · 등록 {p.registrations}{p.badges.length ? ` · ${p.badges.map((b) => BADGE_LABEL[b]).join(", ")}` : ""}</div>
                   </div>
                   <span className="val">{p.score}점</span>
                 </div>

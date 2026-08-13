@@ -15,9 +15,7 @@ export type AgentDTO = {
   author: string;
   dept: string;
   ava: string;
-  likes: number;
   runs: number;
-  liked: boolean;
   saved: boolean;
   mine: boolean;
   comments: CommentDTO[];
@@ -29,7 +27,6 @@ function agentInclude(userId: string | null) {
   return {
     author: true,
     comments: { include: { user: true }, orderBy: { createdAt: "asc" as const } },
-    likes: { where: { userId: userId ?? NONE } },
     saves: { where: { userId: userId ?? NONE } },
   } satisfies Prisma.AgentInclude;
 }
@@ -59,9 +56,7 @@ function serializeAgent(a: LoadedAgent, userId: string | null): AgentDTO {
     author: a.author.name,
     dept: a.author.dept,
     ava: a.author.name.charAt(0),
-    likes: a.likeCount,
     runs: a.runCount,
-    liked: a.likes.length > 0,
     saved: a.saves.length > 0,
     mine: userId != null && a.authorId === userId,
     comments: a.comments.map(serializeComment),

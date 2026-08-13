@@ -9,7 +9,6 @@ import AgentCreateModal from "./AgentCreateModal";
 import { launchClaude } from "@/lib/launch-claude";
 import {
   BotIcon,
-  HeartIcon,
   ZapIcon,
   CommentIcon,
   BookmarkIcon,
@@ -57,13 +56,6 @@ export default function AgentBoard({
     setToast(msg);
     window.clearTimeout((showToast as unknown as { _t?: number })._t);
     (showToast as unknown as { _t?: number })._t = window.setTimeout(() => setToast(""), 2200);
-  }
-
-  async function toggleLike(id: string) {
-    const res = await fetch(`/api/agents/${id}/like`, { method: "POST" });
-    if (!res.ok) return;
-    const data = await res.json();
-    setAgents((prev) => prev.map((a) => (a.id === id ? { ...a, liked: data.liked, likes: data.likes } : a)));
   }
 
   async function toggleSave(id: string) {
@@ -167,7 +159,7 @@ export default function AgentBoard({
   let emptyMsg = "검색 결과가 없어요.";
 
   if (tab === "a-popular") {
-    list = list.slice().sort((a, b) => b.runs + b.likes - (a.runs + a.likes));
+    list = list.slice().sort((a, b) => b.runs - a.runs);
   } else if (tab === "a-saved") {
     list = list.filter((a) => a.saved);
     if (!f) emptyMsg = "아직 저장한 에이전트가 없어요. 마음에 드는 에이전트를 저장해두면 여기 모여요.";
@@ -211,7 +203,6 @@ export default function AgentBoard({
       <AgentDetailModal
         agent={detail}
         onClose={() => setDetailId(null)}
-        onToggleLike={toggleLike}
         onToggleSave={toggleSave}
         onCopyInstructions={copyInstructions}
         onComment={submitComment}
@@ -294,7 +285,6 @@ function AgentCard({
         </div>
         <div className="mini-acts">
           <div className="mini-act"><ZapIcon size={13} /> {a.runs}</div>
-          <div className="mini-act"><HeartIcon size={13} /> {a.likes}</div>
           <div className="mini-act"><CommentIcon size={13} /> {a.comments.length}</div>
         </div>
       </div>
