@@ -93,7 +93,7 @@ export default function PublicDashboard() {
         </div>
 
         <div className="dashboard-scope">
-          {view === "usage" ? `최근 ${days}일 · ${dept || "전사"} 기준` : `${dept || "전사"} · 구독 기준월 데이터`}
+          {view === "usage" ? `주요 지표 최근 ${days}일 · 추이 최근 6개월 · ${dept || "전사"} 기준` : `${dept || "전사"} · 구독 기준월 데이터`}
         </div>
         <div className="dashboard-tabs">
           <button className={view === "usage" ? "on" : ""} onClick={() => setView("usage")}>AI 활용 현황</button>
@@ -144,7 +144,7 @@ export default function PublicDashboard() {
             </section>
 
             <section className="dashboard-section" id="trend">
-              <div className="section-heading"><span>02</span><div><h2>추이</h2><p>최근 {data.periodDays}일 데이터를 월 단위로 나눠 봅니다.</p></div></div>
+              <div className="section-heading"><span>02</span><div><h2>추이</h2><p>최근 6개월</p></div></div>
               <div className="trend-grid">
                 {data.trend.map((row) => (
                   <article key={row.month}>
@@ -174,7 +174,7 @@ export default function PublicDashboard() {
             </section>
 
             <section className="dashboard-section" id="diffusion">
-              <div className="section-heading"><span>04</span><div><h2>부서 확산</h2><p>다른 부서의 콘텐츠를 가져다 쓴 흐름을 부서 단위로 보여줍니다.</p></div></div>
+              <div className="section-heading"><span>04</span><div><h2>부서 확산</h2><p>{data.filterDept ? "우리 부서가 등록한 콘텐츠 기준" : "전사 각 부서가 등록한 콘텐츠 기준"}</p></div></div>
               <div className="dashboard-columns">
                 <div className="dashboard-panel">
                   <h3>부서별 활용 현황</h3>
@@ -219,7 +219,7 @@ export default function PublicDashboard() {
             </section>
 
             <section className="dashboard-section" id="popular">
-              <div className="section-heading"><span>05</span><div><h2>인기 콘텐츠</h2><p>최근 {data.periodDays}일 동안 가장 많이 실행된 콘텐츠입니다.</p></div></div>
+              <div className="section-heading"><span>05</span><div><h2>인기 콘텐츠</h2><p>{data.filterDept ? "우리 부서가 실행한 콘텐츠 기준" : "전사 임직원이 실행한 콘텐츠 기준"} · 최근 {data.periodDays}일</p></div></div>
               <div className="popular-list">
                 {data.popularContent.length === 0 ? <Empty>이 기간에는 실행된 콘텐츠가 없습니다.</Empty> : data.popularContent.map((row, index) => (
                   <article key={`${row.contentType}-${row.contentId}`}>

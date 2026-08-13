@@ -818,15 +818,14 @@ function monthKey(date: Date): string {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
 }
 
-export async function getMonthlyTrend(months: number, dept?: string, periodStart?: Date): Promise<MonthlyTrendRow[]> {
+export async function getMonthlyTrend(months: number, dept?: string): Promise<MonthlyTrendRow[]> {
   requirePositiveInteger(months, "집계 개월 수");
   const filterDept = normalizeDeptFilter(dept);
   const now = new Date();
   const bucketStart = new Date(now.getFullYear(), now.getMonth() - (months - 1), 1);
-  const dataStart = periodStart && periodStart > bucketStart ? periodStart : bucketStart;
   const [contents, runLogs] = await Promise.all([
     collectContents(),
-    collectRunLogs(dataStart),
+    collectRunLogs(bucketStart),
   ]);
   const contentsByKey = indexContents(contents);
   const buckets = new Map<string, { label: string; newRegistrations: number; adoptions: number; users: Set<string> }>();
@@ -842,7 +841,7 @@ export async function getMonthlyTrend(months: number, dept?: string, periodStart
   }
 
   for (const content of contents) {
-    if (content.createdAt < dataStart || (filterDept && content.authorDept !== filterDept)) continue;
+    if (content.createdAt < bucketStart || (filterDept && content.authorDept !== filterDept)) continue;
     const bucket = buckets.get(monthKey(content.createdAt));
     if (bucket) bucket.newRegistrations += 1;
   }
@@ -863,14 +862,6 @@ export async function getMonthlyTrend(months: number, dept?: string, periodStart
     adoptions: value.adoptions,
     activeUsers: value.users.size,
   }));
-}
-
-export async function getMonthlyTrendForDays(days: number, dept?: string): Promise<MonthlyTrendRow[]> {
-  requirePositiveInteger(days, "집계 기간");
-  const periodStart = daysAgo(days);
-  const now = new Date();
-  const months = (now.getFullYear() - periodStart.getFullYear()) * 12 + now.getMonth() - periodStart.getMonth() + 1;
-  return getMonthlyTrend(months, dept, periodStart);
 }
 
 export type PopularContentRow = {
@@ -1013,15 +1004,19 @@ export async function removeCategoryAdmin(id: string): Promise<void> {
 }
 
 export async function getSettingsAdmin() {
-  const [keywords, warning, globalLimit] = await Promise.all([
+  const [keywords, warning, globalLimit, departments, deptHeadcounts] = await Promise.all([
     db.setting.findUnique({ where: { key: "sensitive_keywords" } }),
     db.setting.findUnique({ where: { key: "registration_warning" } }),
     db.setting.findUnique({ where: { key: "global_daily_call_limit" } }),
+    getDashboardDepartments(),
+    getDeptHeadcounts(),
   ]);
   return {
     sensitiveKeywords: Array.isArray(keywords?.value) ? (keywords!.value as string[]) : [],
     registrationWarning: typeof warning?.value === "string" ? warning.value : "",
     globalDailyCallLimit: typeof globalLimit?.value === "number" ? globalLimit.value : 5000,
+    departments,
+    deptHeadcounts,
   };
 }
 

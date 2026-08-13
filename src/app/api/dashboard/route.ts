@@ -8,7 +8,7 @@ import {
   getDeptUsageStats,
   getDiffusionStats,
   getLeaderboardStats,
-  getMonthlyTrendForDays,
+  getMonthlyTrend,
   getPopularContentStats,
 } from "@/lib/admin";
 import type { PublicDashboardData } from "@/lib/public-dashboard-types";
@@ -38,7 +38,7 @@ export async function GET(req: Request) {
   const dept = requestedDept ?? undefined;
   const [overview, trend, categories, diffusion, leaderboard, popularContent, subscriptions] = await Promise.all([
     getDeptUsageStats(days, dept),
-    getMonthlyTrendForDays(days, dept),
+    getMonthlyTrend(6, dept),
     getCategoryStats(days, dept),
     getDiffusionStats(days, dept),
     getLeaderboardStats(days),

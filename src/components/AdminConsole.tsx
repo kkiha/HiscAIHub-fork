@@ -73,6 +73,13 @@ type Badge = "runs" | "registrations";
 type DeptRow = { dept: string; runs: number; registrations: number; activeUsers: number; avgRunsPerUser: number; score: number; delta: number | null };
 type PersonRow = { id: string; name: string; dept: string; runs: number; registrations: number; score: number; badges: Badge[]; lastActive: string };
 type LeaderboardData = { depts: DeptRow[]; individuals: PersonRow[]; powerUser: PersonRow | null };
+type SettingsData = {
+  sensitiveKeywords: string[];
+  registrationWarning: string;
+  globalDailyCallLimit: number;
+  departments: string[];
+  deptHeadcounts: Record<string, number>;
+};
 
 const BADGE_LABEL: Record<Badge, string> = { runs: "실행 1위", registrations: "등록 1위" };
 
@@ -130,6 +137,8 @@ export default function AdminConsole() {
   const [keywords, setKeywords] = useState<string[] | null>(null);
   const [regWarning, setRegWarning] = useState("");
   const [globalLimit, setGlobalLimit] = useState(5000);
+  const [departments, setDepartments] = useState<string[] | null>(null);
+  const [deptHeadcounts, setDeptHeadcounts] = useState<Record<string, string>>({});
 
   function showToast(msg: string) {
     setToast(msg);
@@ -155,10 +164,14 @@ export default function AdminConsole() {
       loadAudit();
     } else if (sec === "settings") {
       getJson<{ categories: CategoryRow[] }>("/api/admin/categories").then((d) => setCats(d.categories));
-      getJson<{ sensitiveKeywords: string[]; registrationWarning: string; globalDailyCallLimit: number }>("/api/admin/settings").then((d) => {
+      getJson<SettingsData>("/api/admin/settings").then((d) => {
         setKeywords(d.sensitiveKeywords);
         setRegWarning(d.registrationWarning);
         setGlobalLimit(d.globalDailyCallLimit);
+        setDepartments(d.departments);
+        setDeptHeadcounts(Object.fromEntries(
+          d.departments.map((department) => [department, d.deptHeadcounts[department]?.toString() ?? ""]),
+        ));
       });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -313,12 +326,14 @@ export default function AdminConsole() {
           {sec === "audit" && audit && (
             <AuditSection rows={audit} action={auditAction} days={auditDays} onAction={setAuditAction} onDays={setAuditDays} />
           )}
-          {sec === "settings" && cats && keywords && (
+          {sec === "settings" && cats && keywords && departments && (
             <SettingsSection
               cats={cats}
               keywords={keywords}
               regWarning={regWarning}
               globalLimit={globalLimit}
+              departments={departments}
+              deptHeadcounts={deptHeadcounts}
               onAddCat={async () => {
                 const v = prompt("추가할 카테고리 이름");
                 if (!v || !v.trim()) return;
@@ -334,12 +349,39 @@ export default function AdminConsole() {
               onRmKw={(i) => setKeywords((k) => k!.filter((_, idx) => idx !== i))}
               onRegWarningChange={setRegWarning}
               onGlobalLimitChange={setGlobalLimit}
+              onHeadcountChange={(department, value) => {
+                setDeptHeadcounts((current) => ({ ...current, [department]: value }));
+              }}
               onSave={async () => {
-                await fetch("/api/admin/settings", {
+                const invalidDepartment = departments.find((department) => {
+                  const value = deptHeadcounts[department]?.trim() ?? "";
+                  return value !== "" && (!/^\d+$/.test(value) || Number(value) < 1);
+                });
+                if (invalidDepartment) {
+                  showToast(`${invalidDepartment} 인원수는 1명 이상의 정수로 입력해 주세요`);
+                  return;
+                }
+
+                const normalizedHeadcounts = Object.fromEntries(
+                  departments
+                    .filter((department) => deptHeadcounts[department]?.trim())
+                    .map((department) => [department, Number(deptHeadcounts[department])]),
+                );
+                const response = await fetch("/api/admin/settings", {
                   method: "PUT",
                   headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({ sensitiveKeywords: keywords, registrationWarning: regWarning, globalDailyCallLimit: globalLimit }),
+                  body: JSON.stringify({
+                    sensitiveKeywords: keywords,
+                    registrationWarning: regWarning,
+                    globalDailyCallLimit: globalLimit,
+                    deptHeadcounts: normalizedHeadcounts,
+                  }),
                 });
+                if (!response.ok) {
+                  const data = await response.json();
+                  showToast(data.error ?? "설정을 저장하지 못했어요");
+                  return;
+                }
                 showToast("설정을 저장했어요");
               }}
             />
@@ -672,15 +714,46 @@ function AuditSection({ rows, action, days, onAction, onDays }: { rows: AuditRow
 }
 
 function SettingsSection({
-  cats, keywords, regWarning, globalLimit,
-  onAddCat, onRmCat, onAddKw, onRmKw, onRegWarningChange, onGlobalLimitChange, onSave,
+  cats, keywords, regWarning, globalLimit, departments, deptHeadcounts,
+  onAddCat, onRmCat, onAddKw, onRmKw, onRegWarningChange, onGlobalLimitChange, onHeadcountChange, onSave,
 }: {
   cats: CategoryRow[]; keywords: string[]; regWarning: string; globalLimit: number;
+  departments: string[]; deptHeadcounts: Record<string, string>;
   onAddCat: () => void; onRmCat: (id: string) => void; onAddKw: () => void; onRmKw: (i: number) => void;
-  onRegWarningChange: (v: string) => void; onGlobalLimitChange: (v: number) => void; onSave: () => void;
+  onRegWarningChange: (v: string) => void; onGlobalLimitChange: (v: number) => void;
+  onHeadcountChange: (department: string, value: string) => void; onSave: () => void;
 }) {
   return (
     <>
+      <div className="set-block">
+        <h3>부서별 인원수</h3>
+        <div className="desc">대시보드의 부서별 활성률을 계산할 때 사용하는 기준 인원입니다. 빈칸으로 저장하면 해당 부서는 인원수 미등록으로 처리됩니다.</div>
+        <div className="headcount-grid">
+          {departments.map((department) => {
+            const value = deptHeadcounts[department] ?? "";
+            const isMissing = value.trim() === "";
+            return (
+              <label className={`headcount-row ${isMissing ? "missing" : ""}`} key={department}>
+                <span className="headcount-dept">{department}{isMissing ? <small>미등록</small> : null}</span>
+                <span className="headcount-field">
+                  <input
+                    className="set-input"
+                    type="number"
+                    min="1"
+                    step="1"
+                    inputMode="numeric"
+                    aria-label={`${department} 인원수`}
+                    placeholder="미등록"
+                    value={value}
+                    onChange={(event) => onHeadcountChange(department, event.target.value)}
+                  />
+                  <span className="unit">명</span>
+                </span>
+              </label>
+            );
+          })}
+        </div>
+      </div>
       <div className="set-block">
         <h3>카테고리 관리</h3>
         <div className="desc">프롬프트·에이전트 등록 시 선택할 수 있는 카테고리예요.</div>

@@ -166,6 +166,14 @@
 .admin textarea.set-input { resize: vertical; line-height: 1.6; }
 .admin .set-row { display: flex; align-items: center; gap: 10px; }
 .admin .set-row .set-input { max-width: 120px; }
+.admin .headcount-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 8px; }
+.admin .headcount-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 48px; border: 0.5px solid var(--border); border-radius: var(--radius-md); background: var(--surface-2); padding: 7px 10px 7px 12px; }
+.admin .headcount-row.missing { border-color: var(--org); background: var(--org-light); }
+.admin .headcount-dept { display: flex; align-items: center; gap: 7px; min-width: 0; font-size: 12.5px; font-weight: 500; }
+.admin .headcount-dept small { flex-shrink: 0; border-radius: 12px; background: var(--surface); color: var(--org-muted); padding: 2px 7px; font-size: 10px; font-weight: 600; }
+.admin .headcount-field { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+.admin .headcount-field .set-input { width: 82px; background: var(--surface); text-align: right; }
+.admin .headcount-field .unit { font-size: 12px; color: var(--text-2); }
 .admin .save-bar { display: flex; justify-content: flex-end; }
 .admin .empty-state { text-align: center; padding: 40px; color: var(--text-3); font-size: 13px; }
 .admin h2.sec-sub { font-size: 13px; font-weight: 600; color: var(--text-2); margin: 4px 0 12px; }
