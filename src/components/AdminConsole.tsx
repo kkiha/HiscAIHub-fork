@@ -419,7 +419,7 @@ function Dashboard({
           ))}
         </div>
         <div className="panel">
-          <div className="panel-head"><h3>이번 주 인기 콘텐츠</h3><a onClick={() => onGo("content")}>콘텐츠 관리 →</a></div>
+          <div className="panel-head"><h3>최근 {data.periodDays}일 인기 콘텐츠</h3><a onClick={() => onGo("content")}>콘텐츠 관리 →</a></div>
           {data.topContent.map((r, i) => (
             <div className="lrow" key={i}><span className="rank">{i + 1}</span><span className={`type-tag ${r.type === "프롬프트" ? "p" : "a"}`}>{r.type}</span><div className="grow"><div className="t">{r.title}</div></div><span className="val">실행 {r.runs}</span></div>
           ))}

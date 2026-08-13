@@ -13,7 +13,6 @@ function daysAgo(n: number): Date {
   return d;
 }
 
-// 프롬프트 제거 시 이 블록에서 Prompt 관련 조회만 삭제하면 된다.
 const RUN_ACTIONS = ["prompt_run", "agent_run"] as const;
 
 // ---------- 대시보드 ----------
@@ -306,6 +305,7 @@ async function collectPeriodTotals(gte: Date, lt?: Date): Promise<PeriodTotals> 
   const range = lt ? { gte, lt } : { gte };
   const [runLogs, prompts, agents, likes] = await Promise.all([
     db.auditLog.findMany({ where: { createdAt: range, action: { in: [...RUN_ACTIONS] } }, include: { user: true } }),
+    // 프롬프트 제거 시 이 블록에서 Prompt 관련 조회만 삭제하면 된다.
     db.prompt.findMany({ where: { createdAt: range }, include: { author: true } }),
     db.agent.findMany({ where: { createdAt: range }, include: { author: true } }),
     db.like.findMany({
