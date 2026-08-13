@@ -3,11 +3,10 @@
 import { useState } from "react";
 import { XIcon, ZapFillIcon, BotIcon } from "@/components/icons";
 import type { AgentDraft } from "./AgentFormModal";
-
-const CATEGORIES = ["리서치", "고객응대", "업무보고", "기획", "코딩", "번역/작성", "컴플라이언스"];
+import { WORK_CATEGORIES, type WorkCategory } from "@/lib/work-categories";
 
 type Step = 1 | 2 | 3;
-type Generated = { name: string; instructions: string; tasks: string[] };
+type Generated = { name: string; instructions: string; tasks: string[]; category: WorkCategory };
 
 export default function AgentCreateModal({
   open,
@@ -19,7 +18,7 @@ export default function AgentCreateModal({
   onUseGenerated: (draft: AgentDraft) => void;
 }) {
   const [step, setStep] = useState<Step>(1);
-  const [cat, setCat] = useState(CATEGORIES[0]);
+  const [cat, setCat] = useState("");
   const [task, setTask] = useState("");
   const [generated, setGenerated] = useState<Generated | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -27,7 +26,7 @@ export default function AgentCreateModal({
 
   function reset() {
     setStep(1);
-    setCat(CATEGORIES[0]);
+    setCat("");
     setTask("");
     setGenerated(null);
     setError(null);
@@ -44,6 +43,10 @@ export default function AgentCreateModal({
   }
 
   async function runGenerate() {
+    if (!cat) {
+      setError("업무 카테고리를 선택해주세요.");
+      return;
+    }
     if (!task.trim()) {
       setError("어떤 일을 하는 에이전트인지 입력해주세요.");
       return;
@@ -62,7 +65,7 @@ export default function AgentCreateModal({
         setStep(1);
         return;
       }
-      setGenerated({ name: data.name, instructions: data.instructions, tasks: data.tasks });
+      setGenerated({ name: data.name, instructions: data.instructions, tasks: data.tasks, category: data.category });
       setStep(3);
     } catch {
       setError("네트워크 오류로 생성에 실패했어요.");
@@ -84,9 +87,10 @@ export default function AgentCreateModal({
         {step === 1 ? (
           <>
             <div className="field">
-              <label>분야 (선택)</label>
-              <select value={cat} onChange={(e) => setCat(e.target.value)}>
-                {CATEGORIES.map((c) => (
+              <label>업무 카테고리 *</label>
+              <select value={cat} onChange={(e) => setCat(e.target.value)} required>
+                <option value="" disabled>업무 카테고리를 선택해주세요</option>
+                {WORK_CATEGORIES.map((c) => (
                   <option key={c} value={c}>{c}</option>
                 ))}
               </select>
@@ -152,7 +156,7 @@ export default function AgentCreateModal({
               <button
                 className="btn-primary"
                 onClick={() => {
-                  onUseGenerated({ cat, name: generated.name, instructions: generated.instructions, tasks: generated.tasks });
+                  onUseGenerated({ cat: generated.category, name: generated.name, instructions: generated.instructions, tasks: generated.tasks });
                   reset();
                 }}
               >

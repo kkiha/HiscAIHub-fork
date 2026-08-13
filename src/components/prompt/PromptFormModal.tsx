@@ -3,10 +3,9 @@
 import { useEffect, useState } from "react";
 import { XIcon } from "@/components/icons";
 import type { PromptDTO } from "@/lib/prompts";
+import { WORK_CATEGORIES, type WorkCategory } from "@/lib/work-categories";
 
-const CATEGORIES = ["리서치", "고객응대", "업무보고", "기획", "코딩", "번역/작성", "컴플라이언스"];
-
-export type PromptDraft = { cat?: string; title?: string; desc?: string; body: string };
+export type PromptDraft = { cat: WorkCategory; title?: string; desc?: string; body: string };
 
 export default function PromptFormModal({
   open,
@@ -21,7 +20,7 @@ export default function PromptFormModal({
   onClose: () => void;
   onSubmit: (data: { cat: string; title: string; desc: string; body: string }) => Promise<string | null>;
 }) {
-  const [cat, setCat] = useState(CATEGORIES[0]);
+  const [cat, setCat] = useState("");
   const [title, setTitle] = useState("");
   const [desc, setDesc] = useState("");
   const [body, setBody] = useState("");
@@ -37,12 +36,12 @@ export default function PromptFormModal({
       setDesc(editing.desc === "(설명 없음)" ? "" : editing.desc);
       setBody(editing.body);
     } else if (draft) {
-      setCat(draft.cat ?? CATEGORIES[0]);
+      setCat(draft.cat);
       setTitle(draft.title ?? "");
       setDesc(draft.desc ?? "");
       setBody(draft.body);
     } else {
-      setCat(CATEGORIES[0]);
+      setCat("");
       setTitle("");
       setDesc("");
       setBody("");
@@ -52,6 +51,10 @@ export default function PromptFormModal({
   if (!open) return null;
 
   async function handleSubmit() {
+    if (!cat) {
+      setError("업무 카테고리를 선택해주세요.");
+      return;
+    }
     if (!title.trim() || !body.trim()) {
       setError("제목과 프롬프트 내용을 입력해주세요.");
       return;
@@ -73,9 +76,10 @@ export default function PromptFormModal({
         <div className="form-sub">동료들이 바로 쓸 수 있도록 프롬프트를 공유해보세요.</div>
 
         <div className="field">
-          <label>카테고리</label>
-          <select value={cat} onChange={(e) => setCat(e.target.value)}>
-            {CATEGORIES.map((c) => (
+          <label>업무 카테고리 *</label>
+          <select value={cat} onChange={(e) => setCat(e.target.value)} required>
+            <option value="" disabled>업무 카테고리를 선택해주세요</option>
+            {WORK_CATEGORIES.map((c) => (
               <option key={c} value={c}>{c}</option>
             ))}
           </select>

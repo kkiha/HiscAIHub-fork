@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/current-user";
 import { getAgentDTO } from "@/lib/agents";
+import { isWorkCategory } from "@/lib/work-categories";
 
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -21,6 +22,9 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     ? body.tasks.map((t: unknown) => String(t).trim()).filter(Boolean)
     : existing.exampleTasks;
 
+  if (!isWorkCategory(category)) {
+    return NextResponse.json({ error: "올바른 업무 카테고리를 선택해주세요." }, { status: 400 });
+  }
   if (!name || !instructions) {
     return NextResponse.json({ error: "에이전트 이름과 지침을 입력해주세요." }, { status: 400 });
   }

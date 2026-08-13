@@ -4,19 +4,19 @@ import { z } from "zod";
 import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import { anthropic, GENERATE_MODEL, estimateCostUsd } from "./anthropic";
 import { db } from "./db";
+import type { WorkCategory } from "./work-categories";
 
-const ROLE_HINTS: Record<string, string> = {
-  "리서치": "당신은 증권사 리서치센터의 숙련된 애널리스트입니다.",
-  "고객응대": "당신은 금융투자회사의 고객 응대 커뮤니케이션 전문가입니다.",
-  "업무보고": "당신은 금융투자업 보고서 작성을 돕는 전문 비서입니다.",
-  "기획": "당신은 금융사 전략기획 실무에 능한 기획 전문가입니다.",
-  "코딩": "당신은 금융 시스템 개발에 능숙한 시니어 엔지니어입니다.",
-  "번역/작성": "당신은 금융 분야에 정통한 전문 번역가이자 카피라이터입니다.",
-  "컴플라이언스": "당신은 금융투자업 준법감시(컴플라이언스) 전문가입니다.",
+const ROLE_HINTS: Record<WorkCategory, string> = {
+  "작성·요약": "당신은 금융투자업 문서 작성과 핵심 요약을 돕는 전문 비서입니다.",
+  "조사·리서치": "당신은 증권사 리서치센터의 숙련된 애널리스트입니다.",
+  "분석": "당신은 금융 데이터와 업무 정보를 구조적으로 분석하는 전문가입니다.",
+  "번역·검토": "당신은 금융 분야에 정통한 전문 번역가이자 검토자입니다.",
+  "기획·아이디어": "당신은 금융사 전략기획 실무에 능한 기획 전문가입니다.",
+  "자동화·개발": "당신은 금융 시스템 개발과 업무 자동화에 능숙한 시니어 엔지니어입니다.",
 };
 
-function roleFor(cat: string): string {
-  return ROLE_HINTS[cat] ?? "당신은 한화투자증권 임직원의 업무를 돕는 전문 AI 어시스턴트입니다.";
+function roleFor(cat: WorkCategory): string {
+  return ROLE_HINTS[cat];
 }
 
 const PromptGenSchema = z.object({
@@ -60,7 +60,7 @@ async function logUsage(
   });
 }
 
-export async function generatePrompt(userId: string, cat: string, task: string) {
+export async function generatePrompt(userId: string, cat: WorkCategory, task: string) {
   const system = `당신은 한화투자증권 사내 "AI 공유 허브"의 프롬프트 생성기입니다.
 임직원이 설명한 업무를 바탕으로, Claude에게 바로 시킬 수 있는 완성도 높은 한국어 프롬프트를 만들어주세요.
 
@@ -89,7 +89,7 @@ export async function generatePrompt(userId: string, cat: string, task: string) 
   return response.parsed_output;
 }
 
-export async function generateAgent(userId: string, cat: string, task: string) {
+export async function generateAgent(userId: string, cat: WorkCategory, task: string) {
   const system = `당신은 한화투자증권 사내 "AI 공유 허브"의 에이전트 생성기입니다.
 임직원이 맡기고 싶은 업무를 바탕으로, 반복 실행 가능한 에이전트(이름/시스템 지침/예시 작업)를 설계해주세요.
 

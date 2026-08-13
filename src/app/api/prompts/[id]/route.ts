@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/current-user";
 import { getPromptDTO } from "@/lib/prompts";
+import { isWorkCategory } from "@/lib/work-categories";
 
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -18,6 +19,9 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   const promptBody = String(body.body ?? "").trim();
   const category = String(body.cat ?? "").trim() || existing.category;
 
+  if (!isWorkCategory(category)) {
+    return NextResponse.json({ error: "올바른 업무 카테고리를 선택해주세요." }, { status: 400 });
+  }
   if (!title || !promptBody) {
     return NextResponse.json({ error: "제목과 프롬프트 내용을 입력해주세요." }, { status: 400 });
   }

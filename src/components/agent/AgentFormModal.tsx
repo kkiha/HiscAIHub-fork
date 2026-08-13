@@ -3,10 +3,9 @@
 import { useEffect, useState } from "react";
 import { XIcon } from "@/components/icons";
 import type { AgentDTO } from "@/lib/agents";
+import { WORK_CATEGORIES, type WorkCategory } from "@/lib/work-categories";
 
-const CATEGORIES = ["리서치", "고객응대", "업무보고", "기획", "코딩", "번역/작성", "컴플라이언스"];
-
-export type AgentDraft = { cat?: string; name?: string; desc?: string; instructions: string; tasks?: string[] };
+export type AgentDraft = { cat: WorkCategory; name?: string; desc?: string; instructions: string; tasks?: string[] };
 
 export default function AgentFormModal({
   open,
@@ -21,7 +20,7 @@ export default function AgentFormModal({
   onClose: () => void;
   onSubmit: (data: { cat: string; name: string; desc: string; instructions: string; tasks: string[] }) => Promise<string | null>;
 }) {
-  const [cat, setCat] = useState(CATEGORIES[0]);
+  const [cat, setCat] = useState("");
   const [name, setName] = useState("");
   const [desc, setDesc] = useState("");
   const [instructions, setInstructions] = useState("");
@@ -39,13 +38,13 @@ export default function AgentFormModal({
       setInstructions(editing.instructions);
       setTasksText(editing.tasks.join("\n"));
     } else if (draft) {
-      setCat(draft.cat ?? CATEGORIES[0]);
+      setCat(draft.cat);
       setName(draft.name ?? "");
       setDesc(draft.desc ?? "");
       setInstructions(draft.instructions);
       setTasksText((draft.tasks ?? []).join("\n"));
     } else {
-      setCat(CATEGORIES[0]);
+      setCat("");
       setName("");
       setDesc("");
       setInstructions("");
@@ -56,6 +55,10 @@ export default function AgentFormModal({
   if (!open) return null;
 
   async function handleSubmit() {
+    if (!cat) {
+      setError("업무 카테고리를 선택해주세요.");
+      return;
+    }
     if (!name.trim() || !instructions.trim()) {
       setError("에이전트 이름과 지침을 입력해주세요.");
       return;
@@ -78,9 +81,10 @@ export default function AgentFormModal({
         <div className="form-sub">반복 업무를 대신 처리하는 나만의 에이전트를 만들어 공유해보세요.</div>
 
         <div className="field">
-          <label>카테고리</label>
-          <select value={cat} onChange={(e) => setCat(e.target.value)}>
-            {CATEGORIES.map((c) => (
+          <label>업무 카테고리 *</label>
+          <select value={cat} onChange={(e) => setCat(e.target.value)} required>
+            <option value="" disabled>업무 카테고리를 선택해주세요</option>
+            {WORK_CATEGORIES.map((c) => (
               <option key={c} value={c}>{c}</option>
             ))}
           </select>
