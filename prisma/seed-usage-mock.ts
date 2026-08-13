@@ -74,6 +74,8 @@ async function main() {
   const auditRows: {
     userId: string;
     action: AuditAction;
+    targetType: "prompt" | "agent" | null;
+    targetId: string | null;
     targetLabel: string;
     fileCount: number;
     status: AuditStatus;
@@ -86,14 +88,27 @@ async function main() {
     for (let i = 0; i < count; i++) {
       const action = pick(AUDIT_ACTIONS);
       const usesAgent = action === "agent_run" || action === "agent_generate";
-      const target = usesAgent && agents.length ? pick(agents).name : prompts.length ? pick(prompts).title : "—";
+      const agentTarget = usesAgent && agents.length ? pick(agents) : null;
+      const promptTarget = !usesAgent && prompts.length ? pick(prompts) : null;
+      const targetLabel = agentTarget?.name ?? promptTarget?.title ?? "—";
+      let targetType: "prompt" | "agent" | null = null;
+      let targetId: string | null = null;
+      if (action === "agent_run" && agentTarget) {
+        targetType = "agent";
+        targetId = agentTarget.id;
+      } else if (action === "prompt_run" && promptTarget) {
+        targetType = "prompt";
+        targetId = promptTarget.id;
+      }
       const hourOfDay = rand(9, 20);
       const createdAt = new Date(date);
       createdAt.setHours(Math.floor(hourOfDay), Math.floor(rand(0, 60)), 0, 0);
       auditRows.push({
         userId: pick(users).id,
         action,
-        targetLabel: target,
+        targetType,
+        targetId,
+        targetLabel,
         fileCount: action === "agent_run" ? Math.floor(rand(0, 3)) : 0,
         status: Math.random() < 0.06 ? "failure" : "success",
         createdAt,

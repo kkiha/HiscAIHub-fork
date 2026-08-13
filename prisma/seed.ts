@@ -305,14 +305,24 @@ async function main() {
   });
 
   // 감사 로그 표본 (관리자 대시보드 표와 매칭)
-  const auditSeed: { user: string; action: "agent_run" | "prompt_generate" | "agent_create"; label: string; files: number; status: "success" | "failure"; hoursAgo: number }[] = [
-    { user: "권다은", action: "agent_run", label: "업무 자동화 비서", files: 2, status: "success", hoursAgo: 1 },
-    { user: "박소영", action: "agent_run", label: "리서치 어시스턴트", files: 1, status: "success", hoursAgo: 2 },
+  const auditSeed: {
+    user: string;
+    action: "agent_run" | "prompt_run" | "prompt_generate" | "agent_create";
+    label: string;
+    agentKey?: string;
+    promptKey?: string;
+    files: number;
+    status: "success" | "failure";
+    hoursAgo: number;
+  }[] = [
+    { user: "권다은", action: "agent_run", label: "업무 자동화 비서", agentKey: "a103", files: 2, status: "success", hoursAgo: 1 },
+    { user: "박소영", action: "agent_run", label: "리서치 어시스턴트", agentKey: "a101", files: 1, status: "success", hoursAgo: 2 },
+    { user: "강태양", action: "prompt_run", label: "종목 리서치 리포트 핵심 요약", promptKey: "p1", files: 0, status: "success", hoursAgo: 3 },
     { user: "강태양", action: "prompt_generate", label: "—", files: 0, status: "success", hoursAgo: 4 },
     { user: "최민준", action: "agent_create", label: "고객 응대 도우미", files: 0, status: "success", hoursAgo: 6 },
-    { user: "윤서연", action: "agent_run", label: "리서치 어시스턴트", files: 3, status: "failure", hoursAgo: 24 },
+    { user: "윤서연", action: "agent_run", label: "리서치 어시스턴트", agentKey: "a101", files: 3, status: "failure", hoursAgo: 24 },
     { user: "정하은", action: "prompt_generate", label: "—", files: 0, status: "success", hoursAgo: 26 },
-    { user: "박소영", action: "agent_run", label: "리서치 어시스턴트", files: 1, status: "success", hoursAgo: 30 },
+    { user: "박소영", action: "agent_run", label: "리서치 어시스턴트", agentKey: "a101", files: 1, status: "success", hoursAgo: 30 },
   ];
   for (const a of auditSeed) {
     const uid = userIdByName.get(a.user)!;
@@ -320,6 +330,12 @@ async function main() {
       data: {
         userId: uid,
         action: a.action,
+        targetType: a.agentKey ? "agent" : a.promptKey ? "prompt" : null,
+        targetId: a.agentKey
+          ? agentIdByKey.get(a.agentKey) ?? null
+          : a.promptKey
+            ? promptIdByKey.get(a.promptKey) ?? null
+            : null,
         targetLabel: a.label,
         fileCount: a.files,
         status: a.status,
@@ -342,11 +358,16 @@ async function main() {
     });
   }
 
-  // 설정 (민감정보 필터 키워드, 등록 경고 문구, 전역 호출 한도)
+  // 설정 (민감정보 필터 키워드, 등록 경고 문구, 전역 호출 한도, 부서별 인원수)
   await db.setting.upsert({
     where: { key: "sensitive_keywords" },
     update: { value: ["고객정보", "주민번호", "계좌번호", "내부수익률", "비공개"] },
     create: { key: "sensitive_keywords", value: ["고객정보", "주민번호", "계좌번호", "내부수익률", "비공개"] },
+  });
+  await db.setting.upsert({
+    where: { key: "dept_headcount" },
+    update: { value: { "AI Roll-up TFT": 8, "리서치센터": 24, "컴플라이언스": 14, "WM영업": 30, "해외주식": 12 } },
+    create: { key: "dept_headcount", value: { "AI Roll-up TFT": 8, "리서치센터": 24, "컴플라이언스": 14, "WM영업": 30, "해외주식": 12 } },
   });
   await db.setting.upsert({
     where: { key: "registration_warning" },
