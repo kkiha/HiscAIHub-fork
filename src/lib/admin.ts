@@ -13,20 +13,23 @@ function daysAgo(n: number): Date {
   return d;
 }
 
-// ---------- 대시보드 ----------
-export async function getDashboardStats() {
-  const weekAgo = daysAgo(7);
-  const prevWeekAgo = daysAgo(14);
+// 프롬프트 제거 시 이 블록에서 Prompt 관련 조회만 삭제하면 된다.
+const RUN_ACTIONS = ["prompt_run", "agent_run"] as const;
 
-  const [activeUsersThisWeek, activeUsersPrevWeek, newPrompts, newAgents, callsThisWeek, callsPrevWeek, costAgg] =
+// ---------- 대시보드 ----------
+export async function getDashboardStats(days: number) {
+  const periodStart = daysAgo(days);
+  const previousPeriodStart = daysAgo(days * 2);
+
+  const [activeUsersInPeriod, activeUsersInPreviousPeriod, newPrompts, newAgents, callsInPeriod, callsInPreviousPeriod, costAgg] =
     await Promise.all([
-      db.usageLog.findMany({ where: { createdAt: { gte: weekAgo } }, distinct: ["userId"], select: { userId: true } }),
-      db.usageLog.findMany({ where: { createdAt: { gte: prevWeekAgo, lt: weekAgo } }, distinct: ["userId"], select: { userId: true } }),
-      db.prompt.count({ where: { createdAt: { gte: weekAgo } } }),
-      db.agent.count({ where: { createdAt: { gte: weekAgo } } }),
-      db.usageLog.count({ where: { createdAt: { gte: weekAgo } } }),
-      db.usageLog.count({ where: { createdAt: { gte: prevWeekAgo, lt: weekAgo } } }),
-      db.usageLog.aggregate({ where: { createdAt: { gte: weekAgo } }, _sum: { costUsd: true } }),
+      db.auditLog.findMany({ where: { createdAt: { gte: periodStart }, action: { in: [...RUN_ACTIONS] } }, distinct: ["userId"], select: { userId: true } }),
+      db.auditLog.findMany({ where: { createdAt: { gte: previousPeriodStart, lt: periodStart }, action: { in: [...RUN_ACTIONS] } }, distinct: ["userId"], select: { userId: true } }),
+      db.prompt.count({ where: { createdAt: { gte: periodStart } } }),
+      db.agent.count({ where: { createdAt: { gte: periodStart } } }),
+      db.usageLog.count({ where: { createdAt: { gte: periodStart } } }),
+      db.usageLog.count({ where: { createdAt: { gte: previousPeriodStart, lt: periodStart } } }),
+      db.usageLog.aggregate({ where: { createdAt: { gte: periodStart } }, _sum: { costUsd: true } }),
     ]);
 
   const pendingReports = await db.report.findMany({
@@ -45,18 +48,19 @@ export async function getDashboardStats() {
     .sort((a, b) => b.runs - a.runs)
     .slice(0, 5);
 
-  const activeUsersDelta = activeUsersPrevWeek.length
-    ? Math.round(((activeUsersThisWeek.length - activeUsersPrevWeek.length) / activeUsersPrevWeek.length) * 100)
+  const activeUsersDelta = activeUsersInPreviousPeriod.length
+    ? Math.round(((activeUsersInPeriod.length - activeUsersInPreviousPeriod.length) / activeUsersInPreviousPeriod.length) * 100)
     : null;
-  const callsDelta = callsPrevWeek ? Math.round(((callsThisWeek - callsPrevWeek) / callsPrevWeek) * 100) : null;
+  const callsDelta = callsInPreviousPeriod ? Math.round(((callsInPeriod - callsInPreviousPeriod) / callsInPreviousPeriod) * 100) : null;
 
   return {
-    activeUsers: activeUsersThisWeek.length,
+    periodDays: days,
+    activeUsers: activeUsersInPeriod.length,
     activeUsersDelta,
     newContent: { prompts: newPrompts, agents: newAgents, total: newPrompts + newAgents },
-    callsThisWeek,
+    callsInPeriod,
     callsDelta,
-    costThisWeekUsd: costAgg._sum.costUsd ?? 0,
+    costInPeriodUsd: costAgg._sum.costUsd ?? 0,
     pendingReports: pendingReports.map((r) => ({
       id: r.id,
       type: r.promptId ? ("프롬프트" as const) : ("에이전트" as const),
@@ -283,7 +287,6 @@ export async function setPerUserDailyLimit(limit: number): Promise<void> {
 // 그건 사용량·비용 탭에서 그대로 확인 가능.
 // 종합점수 가중치: 실행에 가장 큰 비중을 둔다.
 const SCORE_WEIGHTS = { runs: 50, registrations: 30, likes: 20 };
-const RUN_ACTIONS = ["prompt_run", "agent_run"] as const;
 
 type PeriodTotals = {
   byDept: Map<string, { runs: number; registrations: number; likes: number; activeUsers: Set<string> }>;

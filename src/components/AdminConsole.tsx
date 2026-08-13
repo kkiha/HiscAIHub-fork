@@ -48,12 +48,13 @@ type ContentRow = { id: string; type: "프롬프트" | "에이전트"; title: st
 type ReportRow = { id: string; type: "프롬프트" | "에이전트"; contentType: "prompt" | "agent"; contentId: string; title: string; reason: string; reporterCount: number; date: string };
 type UserRow = { id: string; name: string; dept: string; email: string; posts: number; last: string; role: "admin" | "mod" | "user" };
 type DashboardData = {
+  periodDays: number;
   activeUsers: number;
   activeUsersDelta: number | null;
   newContent: { prompts: number; agents: number; total: number };
-  callsThisWeek: number;
+  callsInPeriod: number;
   callsDelta: number | null;
-  costThisWeekUsd: number;
+  costInPeriodUsd: number;
   pendingReports: { id: string; type: "프롬프트" | "에이전트"; title: string; reason: string }[];
   pendingReportCount: number;
   topContent: { type: "프롬프트" | "에이전트"; title: string; runs: number }[];
@@ -110,10 +111,10 @@ export default function AdminConsole() {
   const [toast, setToast] = useState("");
   const [bannerOpen, setBannerOpen] = useState(true);
 
-  const [dashboard, setDashboard] = useState<DashboardData | null>(null);
-  // 어느 기간의 응답인지 함께 들고 있어야, 기간을 바꾼 직후 이전 기간 수치가 새 라벨 아래 남지 않는다.
+  // 기간을 바꾼 직후 이전 응답이 새 라벨 아래 남지 않도록 Dashboard와 리더보드가 각각 응답 기간을 보관한다.
+  const [dashboard, setDashboard] = useState<{ days: number; data: DashboardData } | null>(null);
   const [leaderboard, setLeaderboard] = useState<{ days: number; data: LeaderboardData } | null>(null);
-  const [lbDays, setLbDays] = useState(7);
+  const [lbDays, setLbDays] = useState(30);
   const [content, setContent] = useState<ContentRow[] | null>(null);
   const [cFilter, setCFilter] = useState("");
   const [cType, setCType] = useState("");
@@ -142,9 +143,7 @@ export default function AdminConsole() {
   }, []);
 
   useEffect(() => {
-    if (sec === "dashboard") {
-      getJson<DashboardData>("/api/admin/dashboard").then((d) => { setDashboard(d); setPendingCount(d.pendingReportCount); });
-    } else if (sec === "content") {
+    if (sec === "content") {
       getJson<{ content: ContentRow[] }>("/api/admin/content").then((d) => setContent(d.content));
     } else if (sec === "reports") {
       getJson<{ reports: ReportRow[] }>("/api/admin/reports").then((d) => { setReports(d.reports); setPendingCount(d.reports.length); });
@@ -165,13 +164,19 @@ export default function AdminConsole() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sec]);
 
-  // 대시보드 진입 시점과 기간 토글 양쪽을 여기서만 처리한다(위 [sec] 이펙트에서도 부르면 최초 진입에 요청이 두 번 나감).
+  // 대시보드 진입 시점과 기간 토글 양쪽을 여기서만 처리한다.
   // 기간을 빠르게 바꾸면 앞선 응답이 늦게 도착해 표와 기간 라벨이 어긋날 수 있어, 취소 플래그로 마지막 요청만 반영한다.
   useEffect(() => {
     if (sec !== "dashboard") return;
     let cancelled = false;
-    getJson<LeaderboardData>(`/api/admin/leaderboard?days=${lbDays}`).then((d) => {
-      if (!cancelled) setLeaderboard({ days: lbDays, data: d });
+    Promise.all([
+      getJson<DashboardData>(`/api/admin/dashboard?days=${lbDays}`),
+      getJson<LeaderboardData>(`/api/admin/leaderboard?days=${lbDays}`),
+    ]).then(([dashboardData, leaderboardData]) => {
+      if (cancelled) return;
+      setDashboard({ days: lbDays, data: dashboardData });
+      setLeaderboard({ days: lbDays, data: leaderboardData });
+      setPendingCount(dashboardData.pendingReportCount);
     });
     return () => { cancelled = true; };
   }, [sec, lbDays]);
@@ -238,7 +243,7 @@ export default function AdminConsole() {
         <div className="admin-content">
           {sec === "dashboard" && (
             <Dashboard
-              data={dashboard}
+              data={dashboard?.days === lbDays ? dashboard.data : null}
               leaderboard={leaderboard?.days === lbDays ? leaderboard.data : null}
               lbDays={lbDays}
               onLbDays={setLbDays}
@@ -374,33 +379,33 @@ function Dashboard({
       {showBanner && (
         <div className="banner">
           <Ic name="alert" />
-          <div><b>Claude 호출량이 지난주 대비 {data.callsDelta}% 증가</b>했어요. 사용량·비용 탭에서 급증 사용자를 확인해보세요.</div>
+          <div><b>Claude 호출량이 직전 {data.periodDays}일 대비 {data.callsDelta}% 증가</b>했어요. 사용량·비용 탭에서 급증 사용자를 확인해보세요.</div>
           <button className="x" onClick={onCloseBanner}><Ic name="x" /></button>
         </div>
       )}
       <div className="stat-grid">
         <div className="stat">
-          <div className="label"><Ic name="sUsers" /> 이번 주 활성 사용자</div>
+          <div className="label"><Ic name="sUsers" /> 최근 {data.periodDays}일 활성 사용자</div>
           <div className="num">{data.activeUsers}</div>
           <div className={`delta ${data.activeUsersDelta !== null && data.activeUsersDelta < 0 ? "down" : "up"}`}>
-            {data.activeUsersDelta === null ? "전주 데이터 없음" : `${data.activeUsersDelta >= 0 ? "▲" : "▼"} 지난주 대비 ${Math.abs(data.activeUsersDelta)}%`}
+            {data.activeUsersDelta === null ? `직전 ${data.periodDays}일 데이터 없음` : `${data.activeUsersDelta >= 0 ? "▲" : "▼"} 직전 ${data.periodDays}일 대비 ${Math.abs(data.activeUsersDelta)}%`}
           </div>
         </div>
         <div className="stat">
-          <div className="label"><Ic name="sPlus" /> 신규 등록</div>
+          <div className="label"><Ic name="sPlus" /> 최근 {data.periodDays}일 신규 등록</div>
           <div className="num">{data.newContent.total}<span className="unit">건</span></div>
           <div className="delta up">프롬프트 {data.newContent.prompts} · 에이전트 {data.newContent.agents}</div>
         </div>
         <div className="stat">
-          <div className="label"><Ic name="sZap" /> Claude 호출 (주간)</div>
-          <div className="num">{data.callsThisWeek.toLocaleString()}</div>
+          <div className="label"><Ic name="sZap" /> Claude 호출 (최근 {data.periodDays}일)</div>
+          <div className="num">{data.callsInPeriod.toLocaleString()}</div>
           <div className={`delta ${data.callsDelta !== null && data.callsDelta < 0 ? "down" : "up"}`}>
-            {data.callsDelta === null ? "전주 데이터 없음" : `${data.callsDelta >= 0 ? "▲" : "▼"} ${data.callsDelta >= 30 ? "급증 " : ""}${Math.abs(data.callsDelta)}%`}
+            {data.callsDelta === null ? `직전 ${data.periodDays}일 데이터 없음` : `${data.callsDelta >= 0 ? "▲" : "▼"} ${data.callsDelta >= 30 ? "급증 " : ""}${Math.abs(data.callsDelta)}%`}
           </div>
         </div>
         <div className="stat">
-          <div className="label"><Ic name="sClock" /> 예상 비용 (주간)</div>
-          <div className="num">${data.costThisWeekUsd.toFixed(2)}</div>
+          <div className="label"><Ic name="sClock" /> 예상 비용 (최근 {data.periodDays}일)</div>
+          <div className="num">${data.costInPeriodUsd.toFixed(2)}</div>
           <div className="delta up">실제 Claude API 사용량 기준</div>
         </div>
       </div>
