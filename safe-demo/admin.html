@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; img-src data:; connect-src 'none'; font-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; worker-src 'none'; base-uri 'none'; form-action 'none'" />
+<meta name="referrer" content="no-referrer" />
+<title>AI 공유 허브 · 관리자</title>
+<style>
+  :root {
+    --org: #D96A28; --org-light: #FAF0E8; --org-muted: #B85820; --org-hover: #C25E22;
+    --bg: #F7F6F3; --surface: #FFFFFF; --surface-2: #F2F1ED;
+    --text-1: #2A2A28; --text-2: #6B6A65; --text-3: #9C9B95;
+    --danger: #C0392B; --danger-bg: #FBEAE7; --danger-fg: #B23A2E;
+    --ok: #3E7C59; --ok-bg: #E8F1EC;
+    --warn-bg: #F8EFD7; --warn-fg: #8A6D17;
+    --border: rgba(0,0,0,0.10); --border-strong: rgba(0,0,0,0.18);
+    --radius-md: 8px; --radius-lg: 12px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { background: var(--bg); }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif; color: var(--text-1); }
+
+  .admin { display: grid; grid-template-columns: 232px 1fr; min-height: 100vh; }
+
+  /* 사이드바 */
+  .sidebar { background: var(--surface); border-right: 0.5px solid var(--border); display: flex; flex-direction: column; position: sticky; top: 0; height: 100vh; }
+  .side-logo { display: flex; align-items: center; gap: 8px; padding: 18px 20px; border-bottom: 0.5px solid var(--border); }
+  .logo-sq { width: 23px; height: 23px; border-radius: 5px; background: var(--org); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .logo-sq svg { width: 13px; height: 13px; }
+  .side-logo-txt { font-size: 14px; font-weight: 500; line-height: 1.3; }
+  .side-logo-txt .sub { font-size: 11px; color: var(--org-muted); font-weight: 500; }
+  .side-nav { padding: 12px 12px; flex: 1; overflow-y: auto; }
+  .side-sec { font-size: 10.5px; font-weight: 600; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.05em; padding: 12px 10px 6px; }
+  .side-item { display: flex; align-items: center; gap: 10px; padding: 9px 10px; border-radius: var(--radius-md); font-size: 13px; color: var(--text-2); cursor: pointer; position: relative; }
+  .side-item svg { width: 16px; height: 16px; flex-shrink: 0; }
+  .side-item:hover { background: var(--surface-2); }
+  .side-item.on { background: var(--org-light); color: var(--org-muted); font-weight: 500; }
+  .side-badge { margin-left: auto; font-size: 10px; font-weight: 600; background: var(--danger); color: #fff; border-radius: 10px; padding: 1px 6px; min-width: 16px; text-align: center; }
+  .side-foot { border-top: 0.5px solid var(--border); padding: 12px; }
+  .side-foot a { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-2); text-decoration: none; padding: 8px 10px; border-radius: var(--radius-md); }
+  .side-foot a:hover { background: var(--surface-2); color: var(--org); }
+  .side-foot svg { width: 14px; height: 14px; }
+  .admin-user { display: flex; align-items: center; gap: 8px; padding: 8px 10px; margin-top: 4px; }
+  .admin-ava { width: 26px; height: 26px; border-radius: 50%; background: var(--org-light); color: var(--org-muted); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600; }
+  .admin-user .nm { font-size: 12px; font-weight: 500; }
+  .admin-user .rl { font-size: 10.5px; color: var(--text-3); }
+
+  /* 메인 */
+  .main { min-width: 0; }
+  .topbar { background: var(--surface); border-bottom: 0.5px solid var(--border); height: 60px; display: flex; align-items: center; justify-content: space-between; padding: 0 28px; position: sticky; top: 0; z-index: 20; }
+  .topbar h1 { font-size: 17px; font-weight: 500; }
+  .topbar .sub { font-size: 12px; color: var(--text-3); margin-top: 2px; }
+  .top-right { display: flex; align-items: center; gap: 10px; }
+  .pill-btn { display: flex; align-items: center; gap: 6px; border: 0.5px solid var(--border-strong); background: var(--surface); border-radius: var(--radius-md); padding: 7px 12px; font-size: 12.5px; color: var(--text-2); cursor: pointer; font-family: inherit; }
+  .pill-btn svg { width: 14px; height: 14px; }
+  .pill-btn:hover { border-color: var(--org); color: var(--org); }
+  .pill-btn.primary { background: var(--org); border-color: var(--org); color: #fff; }
+  .pill-btn.primary:hover { background: var(--org-hover); }
+
+  .content { padding: 24px 28px 48px; max-width: 1180px; }
+  .section { display: none; }
+  .section.on { display: block; }
+
+  /* 배너 */
+  .banner { display: flex; align-items: center; gap: 10px; background: var(--warn-bg); border: 0.5px solid rgba(138,109,23,0.25); color: var(--warn-fg); border-radius: var(--radius-md); padding: 11px 14px; font-size: 12.5px; margin-bottom: 20px; }
+  .banner svg { width: 16px; height: 16px; flex-shrink: 0; }
+  .banner b { font-weight: 600; }
+  .banner .x { margin-left: auto; cursor: pointer; opacity: 0.6; line-height: 0; }
+  .banner .x:hover { opacity: 1; }
+
+  /* 통계 카드 */
+  .stat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 24px; }
+  .stat { background: var(--surface); border: 0.5px solid var(--border); border-radius: var(--radius-lg); padding: 16px 18px; }
+  .stat .label { font-size: 12px; color: var(--text-2); display: flex; align-items: center; gap: 6px; margin-bottom: 10px; }
+  .stat .label svg { width: 14px; height: 14px; color: var(--text-3); }
+  .stat .num { font-size: 24px; font-weight: 600; letter-spacing: -0.01em; }
+  .stat .num .unit { font-size: 13px; font-weight: 500; color: var(--text-2); margin-left: 2px; }
+  .stat .delta { font-size: 11px; margin-top: 6px; }
+  .stat .delta.up { color: var(--ok); }
+  .stat .delta.down { color: var(--danger); }
+
+  .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .panel { background: var(--surface); border: 0.5px solid var(--border); border-radius: var(--radius-lg); padding: 18px 20px; }
+  .panel-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+  .panel-head h3 { font-size: 13.5px; font-weight: 600; }
+  .panel-head a { font-size: 12px; color: var(--org); text-decoration: none; cursor: pointer; }
+  .panel-head a:hover { text-decoration: underline; }
+
+  .lrow { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-bottom: 0.5px solid var(--border); font-size: 12.5px; }
+  .lrow:last-child { border-bottom: none; }
+  .lrow .rank { font-weight: 600; color: var(--org); width: 16px; }
+  .lrow .grow { flex: 1; min-width: 0; }
+  .lrow .grow .t { color: var(--text-1); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .lrow .grow .m { font-size: 11px; color: var(--text-3); margin-top: 1px; }
+  .lrow .val { font-size: 12px; color: var(--text-2); white-space: nowrap; }
+  .type-tag { font-size: 10px; font-weight: 500; border-radius: 4px; padding: 1px 6px; }
+  .type-tag.p { background: var(--org-light); color: var(--org-muted); }
+  .type-tag.a { background: #EAF0F6; color: #3F6C99; }
+
+  /* 테이블 */
+  .toolbar { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
+  .search { display: flex; align-items: center; gap: 6px; border: 0.5px solid var(--border-strong); border-radius: var(--radius-md); background: var(--surface); padding: 0 10px; height: 34px; width: 240px; }
+  .search svg { width: 14px; height: 14px; color: var(--text-3); }
+  .search input { border: none; outline: none; background: transparent; font-size: 12.5px; width: 100%; font-family: inherit; }
+  .sel { border: 0.5px solid var(--border-strong); border-radius: var(--radius-md); background: var(--surface); padding: 7px 10px; font-size: 12.5px; color: var(--text-2); font-family: inherit; }
+
+  table.tbl { width: 100%; border-collapse: collapse; background: var(--surface); border: 0.5px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; }
+  .tbl thead th { text-align: left; font-size: 11px; font-weight: 600; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.03em; padding: 11px 14px; border-bottom: 0.5px solid var(--border); background: var(--surface-2); }
+  .tbl td { padding: 12px 14px; font-size: 12.5px; border-bottom: 0.5px solid var(--border); vertical-align: middle; }
+  .tbl tbody tr:last-child td { border-bottom: none; }
+  .tbl tbody tr:hover { background: var(--surface-2); }
+  .cell-title { font-weight: 500; }
+  .cell-sub { font-size: 11px; color: var(--text-3); margin-top: 1px; }
+  .badge { font-size: 10.5px; font-weight: 500; border-radius: 20px; padding: 2px 9px; white-space: nowrap; }
+  .badge.pub { background: var(--ok-bg); color: var(--ok); }
+  .badge.hidden { background: var(--surface-2); color: var(--text-3); }
+  .badge.flag { background: var(--danger-bg); color: var(--danger-fg); }
+  .badge.official { background: var(--org-light); color: var(--org-muted); }
+  .badge.role-admin { background: var(--org-light); color: var(--org-muted); }
+  .badge.role-mod { background: #EAF0F6; color: #3F6C99; }
+  .badge.role-user { background: var(--surface-2); color: var(--text-2); }
+  .row-actions { display: flex; gap: 6px; justify-content: flex-end; }
+  .ico-btn { border: 0.5px solid var(--border-strong); background: var(--surface); border-radius: 6px; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--text-2); }
+  .ico-btn svg { width: 14px; height: 14px; }
+  .ico-btn:hover { border-color: var(--org); color: var(--org); }
+  .ico-btn.del:hover { border-color: var(--danger); color: var(--danger); }
+  .txt-btn { border: 0.5px solid var(--border-strong); background: var(--surface); border-radius: 6px; padding: 5px 10px; font-size: 11.5px; cursor: pointer; color: var(--text-2); font-family: inherit; }
+  .txt-btn:hover { border-color: var(--org); color: var(--org); }
+  .txt-btn.ok:hover { border-color: var(--ok); color: var(--ok); }
+  .txt-btn.del:hover { border-color: var(--danger); color: var(--danger); }
+
+  /* 신고 카드 */
+  .report { background: var(--surface); border: 0.5px solid var(--border); border-radius: var(--radius-lg); padding: 16px 18px; margin-bottom: 12px; }
+  .report-top { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 10px; }
+  .report-top .rt-title { font-size: 13.5px; font-weight: 500; }
+  .report-reason { background: var(--danger-bg); color: var(--danger-fg); font-size: 11.5px; border-radius: var(--radius-md); padding: 8px 11px; margin-bottom: 12px; line-height: 1.5; }
+  .report-meta { font-size: 11.5px; color: var(--text-3); }
+  .report-foot { display: flex; align-items: center; justify-content: space-between; margin-top: 12px; }
+  .report-acts { display: flex; gap: 7px; }
+
+  /* 사용량 차트 */
+  .chart { display: flex; align-items: flex-end; gap: 8px; height: 160px; padding: 8px 0 0; }
+  .bar-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+  .bar { width: 60%; max-width: 34px; background: var(--org); border-radius: 4px 4px 0 0; transition: height .3s; min-height: 3px; }
+  .bar.soft { background: var(--org-light); }
+  .bar-lbl { font-size: 10.5px; color: var(--text-3); }
+  .brk { display: flex; align-items: center; gap: 10px; padding: 11px 0; border-bottom: 0.5px solid var(--border); font-size: 12.5px; }
+  .brk:last-child { border-bottom: none; }
+  .brk .dot { width: 9px; height: 9px; border-radius: 3px; flex-shrink: 0; }
+  .brk .bn { flex: 1; }
+  .brk .bv { color: var(--text-2); font-size: 12px; }
+
+  /* 설정 */
+  .set-block { background: var(--surface); border: 0.5px solid var(--border); border-radius: var(--radius-lg); padding: 18px 20px; margin-bottom: 16px; }
+  .set-block h3 { font-size: 13.5px; font-weight: 600; margin-bottom: 4px; }
+  .set-block .desc { font-size: 12px; color: var(--text-2); margin-bottom: 14px; line-height: 1.5; }
+  .chips { display: flex; flex-wrap: wrap; gap: 7px; align-items: center; }
+  .chip { display: flex; align-items: center; gap: 6px; background: var(--surface-2); border: 0.5px solid var(--border); border-radius: 20px; padding: 4px 6px 4px 11px; font-size: 12px; color: var(--text-1); }
+  .chip .cx { cursor: pointer; color: var(--text-3); line-height: 0; }
+  .chip .cx:hover { color: var(--danger); }
+  .chip.danger { background: var(--danger-bg); color: var(--danger-fg); border-color: transparent; }
+  .chip-add { border: 1px dashed var(--border-strong); background: transparent; border-radius: 20px; padding: 4px 12px; font-size: 12px; color: var(--text-2); cursor: pointer; font-family: inherit; }
+  .chip-add:hover { border-color: var(--org); color: var(--org); }
+  .set-input { width: 100%; border: 0.5px solid var(--border-strong); border-radius: var(--radius-md); background: var(--surface-2); padding: 9px 12px; font-size: 13px; color: var(--text-1); outline: none; font-family: inherit; }
+  .set-input:focus { border-color: var(--org); background: var(--surface); }
+  textarea.set-input { resize: vertical; line-height: 1.6; }
+  .set-row { display: flex; align-items: center; gap: 10px; }
+  .set-row .set-input { max-width: 120px; }
+  .set-row .unit { font-size: 12.5px; color: var(--text-2); }
+  .save-bar { display: flex; justify-content: flex-end; }
+  .empty-state { text-align: center; padding: 40px; color: var(--text-3); font-size: 13px; }
+
+  h2.sec-sub { font-size: 13px; font-weight: 600; color: var(--text-2); margin: 4px 0 12px; }
+</style>
+</head>
+<body>
+<div class="admin">
+  <!-- 사이드바 -->
+  <aside class="sidebar">
+    <div class="side-logo">
+      <div class="logo-sq"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M15.09 14c.18-.98.65-1.74 1.41-2.5A4.65 4.65 0 0 0 18 8 6 6 0 0 0 6 8c0 1 .23 2.23 1.5 3.5A4.61 4.61 0 0 1 8.91 14"/></svg></div>
+      <div class="side-logo-txt">AI 공유 허브<br><span class="sub">관리자 콘솔</span></div>
+    </div>
+    <nav class="side-nav" id="side-nav">
+      <div class="side-sec">운영</div>
+      <div class="side-item on" data-sec="dashboard" onclick="go('dashboard')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg> 대시보드</div>
+      <div class="side-item" data-sec="content" onclick="go('content')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M8 13h8"/><path d="M8 17h5"/></svg> 콘텐츠 관리</div>
+      <div class="side-item" data-sec="reports" onclick="go('reports')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" x2="4" y1="22" y2="15"/></svg> 신고 처리 <span class="side-badge" id="report-badge">3</span></div>
+      <div class="side-sec">관리</div>
+      <div class="side-item" data-sec="users" onclick="go('users')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg> 사용자·권한</div>
+      <div class="side-item" data-sec="usage" onclick="go('usage')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v16a2 2 0 0 0 2 2h16"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg> 사용량·비용</div>
+      <div class="side-item" data-sec="audit" onclick="go('audit')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M16 13H8"/><path d="M16 17H8"/><path d="M10 9H8"/></svg> 감사 로그</div>
+      <div class="side-item" data-sec="settings" onclick="go('settings')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg> 설정</div>
+    </nav>
+    <div class="side-foot">
+      <a href="index.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg> 서비스로 돌아가기</a>
+      <div class="admin-user"><div class="admin-ava">권</div><div><div class="nm">권다은</div><div class="rl">AI Roll-up TFT · 관리자</div></div></div>
+    </div>
+  </aside>
+
+  <!-- 메인 -->
+  <div class="main">
+    <div class="topbar">
+      <div><h1 id="page-title">대시보드</h1><div class="sub" id="page-sub">서비스 운영 현황을 한눈에 확인하세요.</div></div>
+      <div class="top-right" id="top-right"></div>
+    </div>
+
+    <div class="content">
+
+      <!-- 대시보드 -->
+      <section class="section on" id="sec-dashboard">
+        <div class="banner" id="cost-banner">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" x2="12" y1="9" y2="13"/><line x1="12" x2="12.01" y1="17" y2="17"/></svg>
+          <div><b>Claude 호출량이 지난주 대비 38% 증가</b>했어요. 사용량·비용 탭에서 급증 사용자를 확인해보세요.</div>
+          <span class="x" onclick="document.getElementById('cost-banner').style.display='none'"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></span>
+        </div>
+
+        <div class="stat-grid">
+          <div class="stat"><div class="label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg> 이번 주 활성 사용자</div><div class="num">312</div><div class="delta up">▲ 지난주 대비 +14%</div></div>
+          <div class="stat"><div class="label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg> 신규 등록</div><div class="num">27<span class="unit">건</span></div><div class="delta up">프롬프트 19 · 에이전트 8</div></div>
+          <div class="stat"><div class="label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z"/></svg> Claude 호출 (주간)</div><div class="num">2,481</div><div class="delta down">▲ 급증 +38%</div></div>
+          <div class="stat"><div class="label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg> 예상 비용 (주간)</div><div class="num">$142</div><div class="delta up">한도 $400의 36%</div></div>
+        </div>
+
+        <div class="cols">
+          <div class="panel">
+            <div class="panel-head"><h3>처리 대기 신고</h3><a onclick="go('reports')">모두 보기 →</a></div>
+            <div class="lrow"><span class="type-tag p">프롬프트</span><div class="grow"><div class="t">고객 리스트 정리 프롬프트</div><div class="m">사유: 실제 고객정보 포함 의심</div></div><span class="val">신고 2</span></div>
+            <div class="lrow"><span class="type-tag a">에이전트</span><div class="grow"><div class="t">내부 수익률 계산 도우미</div><div class="m">사유: 내부 비공개 수치 노출</div></div><span class="val">신고 1</span></div>
+            <div class="lrow"><span class="type-tag p">프롬프트</span><div class="grow"><div class="t">주식 종목 추천 멘트 생성</div><div class="m">사유: 투자 권유 소지</div></div><span class="val">신고 1</span></div>
+          </div>
+          <div class="panel">
+            <div class="panel-head"><h3>이번 주 인기 콘텐츠</h3><a onclick="go('content')">콘텐츠 관리 →</a></div>
+            <div class="lrow"><span class="rank">1</span><span class="type-tag p">프롬프트</span><div class="grow"><div class="t">종목 리서치 리포트 핵심 요약</div></div><span class="val">실행 210</span></div>
+            <div class="lrow"><span class="rank">2</span><span class="type-tag a">에이전트</span><div class="grow"><div class="t">리서치 어시스턴트</div></div><span class="val">실행 64</span></div>
+            <div class="lrow"><span class="rank">3</span><span class="type-tag p">프롬프트</span><div class="grow"><div class="t">주간 업무보고 자동 초안</div></div><span class="val">실행 188</span></div>
+            <div class="lrow"><span class="rank">4</span><span class="type-tag p">프롬프트</span><div class="grow"><div class="t">민원 답변 톤 교정</div></div><span class="val">실행 155</span></div>
+            <div class="lrow"><span class="rank">5</span><span class="type-tag a">에이전트</span><div class="grow"><div class="t">고객 응대 도우미</div></div><span class="val">실행 52</span></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 콘텐츠 관리 -->
+      <section class="section" id="sec-content">
+        <div class="toolbar">
+          <div class="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg><input placeholder="제목·작성자 검색" oninput="filterContent(this.value)" /></div>
+          <select class="sel" onchange="filterType(this.value)"><option value="">유형 전체</option><option value="프롬프트">프롬프트</option><option value="에이전트">에이전트</option></select>
+          <select class="sel"><option>카테고리 전체</option><option>리서치</option><option>고객응대</option><option>업무보고</option><option>코딩</option></select>
+          <select class="sel"><option>상태 전체</option><option>공개</option><option>숨김</option><option>신고됨</option></select>
+        </div>
+        <table class="tbl"><thead><tr><th>제목</th><th>유형</th><th>작성자</th><th>지표</th><th>상태</th><th style="text-align:right">관리</th></tr></thead>
+          <tbody id="content-tbody"></tbody></table>
+      </section>
+
+      <!-- 신고 처리 -->
+      <section class="section" id="sec-reports">
+        <h2 class="sec-sub">처리 대기 <span id="report-count" style="color:var(--org)">3</span>건</h2>
+        <div id="reports-list"></div>
+      </section>
+
+      <!-- 사용자·권한 -->
+      <section class="section" id="sec-users">
+        <div class="toolbar">
+          <div class="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg><input placeholder="이름·부서 검색" oninput="filterUsers(this.value)" /></div>
+          <select class="sel"><option>역할 전체</option><option>관리자</option><option>운영자</option><option>일반</option></select>
+        </div>
+        <table class="tbl"><thead><tr><th>이름</th><th>부서</th><th>이메일</th><th>작성</th><th>최근 활동</th><th>역할</th></tr></thead>
+          <tbody id="users-tbody"></tbody></table>
+      </section>
+
+      <!-- 사용량·비용 -->
+      <section class="section" id="sec-usage">
+        <div class="cols" style="margin-bottom:16px;">
+          <div class="panel" style="grid-column: span 2;">
+            <div class="panel-head"><h3>일별 Claude 호출 (최근 7일)</h3><span style="font-size:12px;color:var(--text-3)">합계 2,481회 · 예상 $142</span></div>
+            <div class="chart" id="usage-chart"></div>
+          </div>
+        </div>
+        <div class="cols">
+          <div class="panel">
+            <div class="panel-head"><h3>기능별 사용량</h3></div>
+            <div class="brk"><span class="dot" style="background:var(--org)"></span><span class="bn">프롬프트 만들기</span><span class="bv">612회 · $21</span></div>
+            <div class="brk"><span class="dot" style="background:#3F6C99"></span><span class="bn">에이전트 만들기</span><span class="bv">148회 · $9</span></div>
+            <div class="brk"><span class="dot" style="background:var(--org-muted)"></span><span class="bn">에이전트 실행</span><span class="bv">1,721회 · $112</span></div>
+          </div>
+          <div class="panel">
+            <div class="panel-head"><h3>사용량 상위 사용자</h3></div>
+            <div class="lrow"><span class="rank">1</span><div class="grow"><div class="t">박소영 · 리서치센터</div></div><span class="val">248회</span></div>
+            <div class="lrow"><span class="rank">2</span><div class="grow"><div class="t">강태양 · WM영업</div></div><span class="val">191회</span></div>
+            <div class="lrow"><span class="rank">3</span><div class="grow"><div class="t">최민준 · 컴플라이언스</div></div><span class="val">156회</span></div>
+            <div class="lrow"><span class="rank">4</span><div class="grow"><div class="t">윤서연 · 해외주식</div></div><span class="val">133회</span></div>
+          </div>
+        </div>
+        <div class="set-block" style="margin-top:16px;">
+          <h3>사용자별 호출 한도</h3>
+          <div class="desc">한 사용자가 하루에 보낼 수 있는 Claude 호출 수를 제한해요. 비용 급증을 막는 안전장치예요.</div>
+          <div class="set-row"><input class="set-input" value="100" /><span class="unit">회 / 일</span><button class="pill-btn primary" style="margin-left:8px" onclick="toast('한도를 저장했어요')">저장</button></div>
+        </div>
+      </section>
+
+      <!-- 감사 로그 -->
+      <section class="section" id="sec-audit">
+        <div class="toolbar">
+          <select class="sel"><option>작업 전체</option><option>프롬프트 생성</option><option>에이전트 생성</option><option>에이전트 실행</option></select>
+          <select class="sel"><option>최근 7일</option><option>최근 30일</option><option>전체</option></select>
+        </div>
+        <table class="tbl"><thead><tr><th>시간</th><th>사용자</th><th>작업</th><th>대상</th><th>파일</th><th>상태</th></tr></thead>
+          <tbody id="audit-tbody"></tbody></table>
+      </section>
+
+      <!-- 설정 -->
+      <section class="section" id="sec-settings">
+        <div class="set-block">
+          <h3>카테고리 관리</h3>
+          <div class="desc">프롬프트·에이전트 등록 시 선택할 수 있는 카테고리예요.</div>
+          <div class="chips" id="cat-chips"></div>
+        </div>
+        <div class="set-block">
+          <h3>민감정보 필터 키워드</h3>
+          <div class="desc">등록·실행 시 이 키워드가 포함되면 자동으로 경고하거나 검수 대상으로 표시해요. 금융권 민감정보 보호를 위한 장치예요.</div>
+          <div class="chips" id="kw-chips"></div>
+        </div>
+        <div class="set-block">
+          <h3>등록 시 경고 문구</h3>
+          <div class="desc">사용자가 프롬프트·에이전트를 등록할 때 상단에 보여줄 안내 문구예요.</div>
+          <textarea class="set-input" rows="2">실제 고객정보, 내부 비공개 수치, 계좌·주민번호 등 민감정보는 절대 입력하지 마세요.</textarea>
+        </div>
+        <div class="set-block">
+          <h3>전역 호출 한도</h3>
+          <div class="desc">서비스 전체가 하루에 보낼 수 있는 Claude 호출 상한이에요.</div>
+          <div class="set-row"><input class="set-input" value="5000" /><span class="unit">회 / 일</span></div>
+        </div>
+        <div class="save-bar"><button class="pill-btn primary" onclick="toast('설정을 저장했어요')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg> 설정 저장</button></div>
+      </section>
+
+    </div>
+  </div>
+</div>
+
+<div id="toast" style="position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--text-1);color:#fff;font-size:12.5px;padding:10px 16px;border-radius:20px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:100;"></div>
+
+<script>
+const PAGE = {
+  dashboard: ['대시보드','서비스 운영 현황을 한눈에 확인하세요.'],
+  content:   ['콘텐츠 관리','등록된 프롬프트·에이전트를 검수하고 관리해요.'],
+  reports:   ['신고 처리','사용자가 신고한 콘텐츠를 확인하고 처리해요.'],
+  users:     ['사용자·권한','사용자 역할을 관리해요. 계정은 회사 SSO가 관리해요.'],
+  usage:     ['사용량·비용','Claude 호출량과 비용을 모니터링해요.'],
+  audit:     ['감사 로그','생성·실행 이력을 조회하고 내보내요.'],
+  settings:  ['설정','카테고리·필터·한도 등 서비스 정책을 설정해요.']
+};
+const TOP_RIGHT = {
+  audit: '<button class="pill-btn" onclick="toast(\'CSV로 내보냈어요\')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg> 로그 내보내기</button>'
+};
+
+function go(sec){
+  document.querySelectorAll('.side-item').forEach(i=>i.classList.toggle('on', i.dataset.sec===sec));
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('on'));
+  document.getElementById('sec-'+sec).classList.add('on');
+  document.getElementById('page-title').textContent = PAGE[sec][0];
+  document.getElementById('page-sub').textContent = PAGE[sec][1];
+  document.getElementById('top-right').innerHTML = TOP_RIGHT[sec] || '';
+  window.scrollTo(0,0);
+}
+function toast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.style.opacity='1'; clearTimeout(t._t); t._t=setTimeout(()=>t.style.opacity='0',2000); }
+
+/* 콘텐츠 데이터 */
+let content = [
+  { id:1, title:'종목 리서치 리포트 핵심 요약', type:'프롬프트', author:'박소영', dept:'리서치센터', metric:'실행 210 · ♥ 84', status:'pub', official:true },
+  { id:2, title:'리서치 어시스턴트', type:'에이전트', author:'박소영', dept:'리서치센터', metric:'실행 64 · ♥ 38', status:'pub' },
+  { id:3, title:'고객 리스트 정리 프롬프트', type:'프롬프트', author:'미상', dept:'—', metric:'실행 4', status:'flag' },
+  { id:4, title:'주간 업무보고 자동 초안', type:'프롬프트', author:'권다은', dept:'AI Roll-up TFT', metric:'실행 188 · ♥ 57', status:'pub' },
+  { id:5, title:'민원 답변 톤 교정', type:'프롬프트', author:'최민준', dept:'컴플라이언스', metric:'실행 155 · ♥ 61', status:'pub' },
+  { id:6, title:'내부 수익률 계산 도우미', type:'에이전트', author:'미상', dept:'—', metric:'실행 6', status:'flag' },
+  { id:7, title:'회의록 정리 & 액션아이템', type:'프롬프트', author:'정하은', dept:'전략기획', metric:'실행 59', status:'hidden' },
+  { id:8, title:'고객 응대 도우미', type:'에이전트', author:'최민준', dept:'컴플라이언스', metric:'실행 52 · ♥ 29', status:'pub' }
+];
+let cFilterText = '', cFilterType = '';
+const STATUS = { pub:['공개','pub'], hidden:['숨김','hidden'], flag:['신고됨','flag'] };
+function renderContent(){
+  const rows = content.filter(c =>
+    (!cFilterText || (c.title+c.author).toLowerCase().includes(cFilterText)) &&
+    (!cFilterType || c.type===cFilterType)
+  );
+  const tb = document.getElementById('content-tbody');
+  if(!rows.length){ tb.innerHTML = '<tr><td colspan="6"><div class="empty-state">해당하는 콘텐츠가 없어요.</div></td></tr>'; return; }
+  tb.innerHTML = rows.map(c => `
+    <tr>
+      <td><div class="cell-title">${c.title} ${c.official?'<span class="badge official">공식</span>':''}</div></td>
+      <td><span class="type-tag ${c.type==='프롬프트'?'p':'a'}">${c.type}</span></td>
+      <td>${c.author}<div class="cell-sub">${c.dept}</div></td>
+      <td style="color:var(--text-2)">${c.metric}</td>
+      <td><span class="badge ${STATUS[c.status][1]}">${STATUS[c.status][0]}</span></td>
+      <td><div class="row-actions">
+        <button class="txt-btn" onclick="makeOfficial(${c.id})">${c.official?'공식 해제':'공식 지정'}</button>
+        <button class="txt-btn" onclick="toggleHide(${c.id})">${c.status==='hidden'?'공개':'숨김'}</button>
+        <button class="ico-btn del" onclick="delContent(${c.id})" title="삭제"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>
+      </div></td>
+    </tr>`).join('');
+}
+function filterContent(v){ cFilterText=(v||'').toLowerCase(); renderContent(); }
+function filterType(v){ cFilterType=v; renderContent(); }
+function toggleHide(id){ const c=content.find(x=>x.id===id); c.status = c.status==='hidden'?'pub':'hidden'; renderContent(); toast(c.status==='hidden'?'숨김 처리했어요':'다시 공개했어요'); }
+function makeOfficial(id){ const c=content.find(x=>x.id===id); c.official=!c.official; renderContent(); toast(c.official?'공식 콘텐츠로 지정했어요':'공식 지정을 해제했어요'); }
+function delContent(id){ if(!confirm('이 콘텐츠를 삭제할까요? 되돌릴 수 없어요.'))return; content=content.filter(x=>x.id!==id); renderContent(); toast('삭제했어요'); }
+
+/* 신고 데이터 */
+let reports = [
+  { id:1, title:'고객 리스트 정리 프롬프트', type:'프롬프트', reason:'프롬프트 본문에 실제 고객 이름·연락처로 보이는 정보가 포함돼 있습니다.', reporter:'익명 2명', date:'2일 전' },
+  { id:2, title:'내부 수익률 계산 도우미', type:'에이전트', reason:'지침에 외부 공개되지 않은 내부 수익률 산식이 노출돼 있습니다.', reporter:'익명 1명', date:'3일 전' },
+  { id:3, title:'주식 종목 추천 멘트 생성', type:'프롬프트', reason:'특정 종목 매수를 단정적으로 권유하는 문구를 생성합니다. 투자 권유 소지가 있습니다.', reporter:'익명 1명', date:'5일 전' }
+];
+function renderReports(){
+  const list = document.getElementById('reports-list');
+  document.getElementById('report-count').textContent = reports.length;
+  document.getElementById('report-badge').textContent = reports.length;
+  document.getElementById('report-badge').style.display = reports.length?'inline-block':'none';
+  if(!reports.length){ list.innerHTML = '<div class="empty-state">처리할 신고가 없어요. 깔끔하네요.</div>'; return; }
+  list.innerHTML = reports.map(r => `
+    <div class="report">
+      <div class="report-top">
+        <span class="type-tag ${r.type==='프롬프트'?'p':'a'}">${r.type}</span>
+        <div class="rt-title">${r.title}</div>
+      </div>
+      <div class="report-reason">${r.reason}</div>
+      <div class="report-foot">
+        <span class="report-meta">신고 ${r.reporter} · ${r.date}</span>
+        <div class="report-acts">
+          <button class="txt-btn ok" onclick="resolveReport(${r.id},'keep')">유지</button>
+          <button class="txt-btn" onclick="resolveReport(${r.id},'hide')">숨김</button>
+          <button class="txt-btn del" onclick="resolveReport(${r.id},'del')">삭제</button>
+        </div>
+      </div>
+    </div>`).join('');
+}
+function resolveReport(id, action){
+  const labels = { keep:'유지 처리했어요', hide:'숨김 처리했어요', del:'삭제 처리했어요' };
+  if(action==='del' && !confirm('신고된 콘텐츠를 삭제할까요?')) return;
+  reports = reports.filter(r=>r.id!==id);
+  renderReports(); toast(labels[action]);
+}
+
+/* 사용자 데이터 */
+let users = [
+  { name:'권다은', dept:'AI Roll-up TFT', email:'daeun.kwon@hanwha.com', posts:'12', last:'방금 전', role:'admin' },
+  { name:'박소영', dept:'리서치센터', email:'soyoung.park@hanwha.com', posts:'8', last:'1시간 전', role:'mod' },
+  { name:'최민준', dept:'컴플라이언스', email:'minjun.choi@hanwha.com', posts:'6', last:'3시간 전', role:'mod' },
+  { name:'강태양', dept:'WM영업', email:'taeyang.kang@hanwha.com', posts:'4', last:'어제', role:'user' },
+  { name:'윤서연', dept:'해외주식', email:'seoyeon.yoon@hanwha.com', posts:'3', last:'어제', role:'user' },
+  { name:'정하은', dept:'전략기획', email:'haeun.jung@hanwha.com', posts:'5', last:'2일 전', role:'user' }
+];
+const ROLE = { admin:['관리자','role-admin'], mod:['운영자','role-mod'], user:['일반','role-user'] };
+let uFilter='';
+function renderUsers(){
+  const rows = users.filter(u => !uFilter || (u.name+u.dept).toLowerCase().includes(uFilter));
+  document.getElementById('users-tbody').innerHTML = rows.map((u,i) => `
+    <tr>
+      <td><div class="cell-title">${u.name}</div></td>
+      <td>${u.dept}</td>
+      <td style="color:var(--text-2)">${u.email}</td>
+      <td>${u.posts}건</td>
+      <td style="color:var(--text-3)">${u.last}</td>
+      <td><select class="sel" style="padding:4px 8px" onchange="changeRole('${u.email}', this.value)">
+        <option value="admin" ${u.role==='admin'?'selected':''}>관리자</option>
+        <option value="mod" ${u.role==='mod'?'selected':''}>운영자</option>
+        <option value="user" ${u.role==='user'?'selected':''}>일반</option>
+      </select></td>
+    </tr>`).join('');
+}
+function filterUsers(v){ uFilter=(v||'').toLowerCase(); renderUsers(); }
+function changeRole(email, role){ const u=users.find(x=>x.email===email); u.role=role; toast(u.name+'님을 '+ROLE[role][0]+'(으)로 변경했어요'); }
+
+/* 사용량 차트 */
+function renderChart(){
+  const data = [ ['월',280],['화',312],['수',298],['목',410],['금',521],['토',180],['일',480] ];
+  const max = Math.max(...data.map(d=>d[1]));
+  document.getElementById('usage-chart').innerHTML = data.map(d => {
+    const h = Math.round(d[1]/max*130)+8;
+    const soft = d[1] > max*0.85 ? '' : ' soft';
+    return `<div class="bar-col"><div class="bar${soft}" style="height:${h}px" title="${d[1]}회"></div><div class="bar-lbl">${d[0]}</div></div>`;
+  }).join('');
+}
+
+/* 감사 로그 */
+const audit = [
+  ['06.29 14:22','권다은','에이전트 실행','업무 자동화 비서','2개','성공'],
+  ['06.29 13:50','박소영','에이전트 실행','리서치 어시스턴트','1개','성공'],
+  ['06.29 11:37','강태양','프롬프트 만들기','—','—','성공'],
+  ['06.29 10:12','최민준','에이전트 등록','고객 응대 도우미','—','성공'],
+  ['06.28 17:05','윤서연','에이전트 실행','리서치 어시스턴트','3개','실패'],
+  ['06.28 15:44','정하은','프롬프트 만들기','—','—','성공'],
+  ['06.28 09:20','박소영','에이전트 실행','리서치 어시스턴트','1개','성공']
+];
+function renderAudit(){
+  document.getElementById('audit-tbody').innerHTML = audit.map(r => `
+    <tr>
+      <td style="color:var(--text-2)">${r[0]}</td>
+      <td><div class="cell-title">${r[1]}</div></td>
+      <td>${r[2]}</td>
+      <td>${r[3]}</td>
+      <td style="color:var(--text-3)">${r[4]}</td>
+      <td><span class="badge ${r[5]==='성공'?'pub':'flag'}">${r[5]}</span></td>
+    </tr>`).join('');
+}
+
+/* 설정 chips */
+let cats = ['리서치','고객응대','업무보고','기획','코딩','번역/작성','컴플라이언스'];
+let keywords = ['고객정보','주민번호','계좌번호','내부수익률','비공개'];
+function renderChips(){
+  document.getElementById('cat-chips').innerHTML =
+    cats.map((c,i)=>`<span class="chip">${c}<span class="cx" onclick="rmCat(${i})"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></span></span>`).join('')
+    + '<button class="chip-add" onclick="addCat()">+ 추가</button>';
+  document.getElementById('kw-chips').innerHTML =
+    keywords.map((k,i)=>`<span class="chip danger">${k}<span class="cx" onclick="rmKw(${i})"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></span></span>`).join('')
+    + '<button class="chip-add" onclick="addKw()">+ 추가</button>';
+}
+function addCat(){ const v=prompt('추가할 카테고리 이름'); if(v&&v.trim()){ cats.push(v.trim()); renderChips(); } }
+function rmCat(i){ cats.splice(i,1); renderChips(); }
+function addKw(){ const v=prompt('추가할 민감정보 키워드'); if(v&&v.trim()){ keywords.push(v.trim()); renderChips(); } }
+function rmKw(i){ keywords.splice(i,1); renderChips(); }
+
+renderContent(); renderReports(); renderUsers(); renderChart(); renderAudit(); renderChips();
+</script>
+</body>
+</html>

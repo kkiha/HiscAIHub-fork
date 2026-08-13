@@ -1,0 +1,1129 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; img-src data:; connect-src 'none'; font-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; worker-src 'none'; base-uri 'none'; form-action 'none'" />
+<meta name="referrer" content="no-referrer" />
+<title>PromptHub · 한화투자증권</title>
+<style>
+  :root {
+    --org: #D96A28; --org-light: #FAF0E8; --org-muted: #B85820; --org-hover: #C25E22;
+    --bg: #F7F6F3; --surface: #FFFFFF; --surface-2: #F2F1ED;
+    --text-1: #2A2A28; --text-2: #6B6A65; --text-3: #9C9B95; --danger: #C0392B;
+    --hot-bg: #FBEAE7; --hot-fg: #B23A2E; --gold-bg: #F8EFD7; --gold-fg: #8A6D17;
+    --border: rgba(0,0,0,0.10); --border-strong: rgba(0,0,0,0.18);
+    --radius-md: 8px; --radius-lg: 12px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { background: var(--bg); }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif; color: var(--text-1); min-height: 100vh; }
+
+  .topbar { background: var(--surface); border-bottom: 0.5px solid var(--border); padding: 0 40px; height: 56px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 50; }
+  .logo { display: flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 500; }
+  .logo-sq { width: 23px; height: 23px; border-radius: 5px; background: var(--org); display: flex; align-items: center; justify-content: center; }
+  .logo-sq svg { width: 13px; height: 13px; }
+  .logo-sub { color: var(--text-3); font-weight: 400; font-size: 13px; margin-left: 2px; }
+  .topnav { display: flex; gap: 24px; }
+  .tnav { font-size: 13px; color: var(--text-2); cursor: pointer; display: flex; align-items: center; gap: 5px; position: relative; }
+  .tnav.on { color: var(--org); font-weight: 500; }
+  .mode-switch { display: flex; background: var(--surface-2); border: 0.5px solid var(--border); border-radius: 22px; padding: 3px; gap: 2px; }
+  .mode-btn { display: flex; align-items: center; gap: 6px; border: none; background: transparent; cursor: pointer; font-family: inherit; font-size: 13px; font-weight: 500; color: var(--text-2); padding: 6px 16px; border-radius: 20px; transition: all 0.15s; }
+  .mode-btn svg { width: 15px; height: 15px; }
+  .mode-btn.on { background: var(--surface); color: var(--org); box-shadow: 0 1px 2px rgba(0,0,0,0.06); }
+  .subtabs { display: flex; gap: 22px; align-items: center; }
+  .subbar-right { display: flex; align-items: center; gap: 12px; }
+  .tnav:hover { color: var(--org); }
+  .tnav .nav-dot { position: absolute; top: -3px; right: -8px; width: 6px; height: 6px; border-radius: 50%; background: var(--org); }
+  .user-pill { display: flex; align-items: center; gap: 7px; font-size: 12px; color: var(--text-2); background: var(--surface-2); border: 0.5px solid var(--border); border-radius: 20px; padding: 5px 12px; cursor: pointer; }
+  .user-pill:hover { border-color: var(--org); }
+  .user-pill .dot { width: 18px; height: 18px; border-radius: 50%; background: var(--org-light); color: var(--org-muted); display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 600; }
+
+  .subbar { background: var(--surface); border-bottom: 0.5px solid var(--border); padding: 14px 40px; display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+  .search-wrap { display: flex; align-items: center; gap: 7px; border: 0.5px solid var(--border-strong); border-radius: var(--radius-md); background: var(--surface-2); padding: 0 12px; height: 38px; width: 320px; }
+  .search-wrap svg { width: 15px; height: 15px; color: var(--text-3); flex-shrink: 0; }
+  .search-wrap input { border: none; background: transparent; outline: none; font-size: 13px; color: var(--text-1); width: 100%; font-family: inherit; }
+  .reg-btn { background: var(--org); color: #fff; border: none; border-radius: var(--radius-md); padding: 9px 16px; font-size: 13px; font-weight: 500; cursor: pointer; display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+  .reg-btn:hover { background: var(--org-hover); }
+  .reg-btn svg { width: 15px; height: 15px; }
+  .subbar-actions { display: flex; gap: 8px; }
+  .make-btn { background: var(--surface); color: var(--org); border: 0.5px solid var(--org); border-radius: var(--radius-md); padding: 9px 16px; font-size: 13px; font-weight: 500; cursor: pointer; display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+  .make-btn:hover { background: var(--org-light); }
+  .make-btn svg { width: 15px; height: 15px; }
+  .agent-icon { width: 30px; height: 30px; border-radius: 8px; background: var(--org-light); color: var(--org-muted); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .agent-icon svg { width: 16px; height: 16px; }
+  .card-title-row { display: flex; align-items: center; gap: 9px; margin-bottom: 7px; }
+  .card-title-row .card-title { margin-bottom: 0; }
+  .task-chips { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 14px; }
+  .task-chip { font-size: 11px; color: var(--text-2); background: var(--surface-2); border: 0.5px solid var(--border); border-radius: 20px; padding: 4px 10px; }
+  .task-chip.click { cursor: pointer; }
+  .task-chip.click:hover { border-color: var(--org); color: var(--org); background: var(--org-light); }
+  .modal-icon-row { display: flex; align-items: center; gap: 11px; margin-bottom: 12px; }
+  .modal-icon-row .agent-icon { width: 38px; height: 38px; border-radius: 10px; }
+  .modal-icon-row .agent-icon svg { width: 20px; height: 20px; }
+  .modal-icon-row .modal-title { margin-bottom: 2px; padding-right: 0; }
+  .link-toggle { background: none; border: none; color: var(--org); font-size: 12px; font-weight: 500; cursor: pointer; padding: 0; font-family: inherit; display: inline-flex; align-items: center; gap: 4px; margin-bottom: 16px; }
+  .link-toggle:hover { text-decoration: underline; }
+  .link-toggle svg { width: 13px; height: 13px; }
+  .upload-zone { border: 1px dashed var(--border-strong); border-radius: var(--radius-md); background: var(--surface-2); padding: 18px; text-align: center; font-size: 12.5px; color: var(--text-2); cursor: pointer; transition: all .15s; margin-bottom: 10px; }
+  .upload-zone:hover, .upload-zone.drag { border-color: var(--org); background: var(--org-light); color: var(--org-muted); }
+  .upload-zone svg { width: 20px; height: 20px; display: block; margin: 0 auto 6px; color: var(--text-3); }
+  .file-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
+  .file-item { display: flex; align-items: center; gap: 8px; background: var(--surface-2); border: 0.5px solid var(--border); border-radius: var(--radius-md); padding: 7px 10px; font-size: 12px; color: var(--text-1); }
+  .file-item svg { width: 14px; height: 14px; color: var(--org-muted); flex-shrink: 0; }
+  .file-item .fname { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .file-item .fx { cursor: pointer; color: var(--text-3); line-height: 0; }
+  .file-item .fx:hover { color: var(--danger); }
+  .run-primary { width: 100%; background: var(--org); color: #fff; border: none; border-radius: var(--radius-md); padding: 12px; font-size: 14px; font-weight: 500; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 7px; font-family: inherit; margin-bottom: 16px; }
+  .run-primary:hover { background: var(--org-hover); }
+  .run-primary svg { width: 16px; height: 16px; }
+  .run-result { display: none; border: 0.5px solid var(--border); border-radius: var(--radius-md); background: var(--surface-2); padding: 14px 16px; margin-bottom: 18px; }
+  .run-step { display: flex; align-items: center; gap: 9px; font-size: 12.5px; color: var(--text-2); padding: 5px 0; }
+  .run-step .rs-ico { width: 16px; height: 16px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; color: var(--text-3); }
+  .run-step.done { color: var(--text-1); }
+  .run-step.done .rs-ico { color: var(--org); }
+  .run-out { margin-top: 12px; padding-top: 12px; border-top: 0.5px solid var(--border); font-size: 12.5px; line-height: 1.75; color: var(--text-1); white-space: pre-wrap; }
+  .run-out b { font-weight: 600; }
+  .run-note { font-size: 11px; color: var(--text-3); margin-top: 10px; line-height: 1.6; }
+  .gen-loading { display: flex; align-items: center; gap: 11px; padding: 44px 4px; color: var(--text-2); font-size: 13px; }
+  .spinner { width: 18px; height: 18px; border: 2px solid var(--border); border-top-color: var(--org); border-radius: 50%; animation: spin 0.7s linear infinite; flex-shrink: 0; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .gen-note { font-size: 11.5px; color: var(--text-3); margin-top: 12px; line-height: 1.6; }
+
+  .content { padding: 28px 40px 48px; max-width: 1200px; margin: 0 auto; }
+  .view-header { margin-bottom: 20px; }
+  .view-header h2 { font-size: 17px; font-weight: 500; margin-bottom: 4px; }
+  .view-header p { font-size: 12.5px; color: var(--text-2); }
+  .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  @media (max-width: 920px) { .grid { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 620px) { .grid { grid-template-columns: 1fr; } .topbar, .subbar, .content { padding-left: 20px; padding-right: 20px; } .topnav { gap: 14px; } }
+
+  .card { background: var(--surface); border: 0.5px solid var(--border); border-radius: var(--radius-lg); padding: 18px 20px 16px; display: flex; flex-direction: column; cursor: pointer; transition: border-color 0.15s, transform 0.15s; position: relative; }
+  .card:hover { border-color: var(--org); transform: translateY(-2px); }
+  .award-banner { display: flex; align-items: center; gap: 6px; font-size: 11.5px; font-weight: 500; padding: 8px 11px; border-radius: var(--radius-md); margin-bottom: 14px; line-height: 1.3; }
+  .award-banner svg { width: 13px; height: 13px; flex-shrink: 0; }
+  .award-banner.like { background: var(--org-light); color: var(--org-muted); }
+  .award-banner.hot { background: var(--hot-bg); color: var(--hot-fg); }
+  .award-banner.useful { background: var(--gold-bg); color: var(--gold-fg); }
+  .card-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 11px; }
+  .cat-badge { font-size: 11px; font-weight: 500; background: var(--org-light); color: var(--org-muted); border-radius: 20px; padding: 3px 10px; }
+  .card-date { font-size: 11px; color: var(--text-3); }
+  .card-save { background: none; border: none; cursor: pointer; color: var(--text-3); padding: 2px; line-height: 0; border-radius: 4px; display: flex; }
+  .card-save svg { width: 15px; height: 15px; }
+  .card-save:hover { color: var(--org); }
+  .card-save.on { color: var(--org); }
+  .card-head-right { display: flex; align-items: center; gap: 8px; }
+  .card-title { font-size: 14.5px; font-weight: 500; margin-bottom: 7px; line-height: 1.5; }
+  .card-desc { font-size: 12.5px; color: var(--text-2); line-height: 1.65; margin-bottom: 16px; flex: 1; }
+  .card-foot { display: flex; align-items: center; justify-content: space-between; padding-top: 13px; border-top: 0.5px solid var(--border); }
+  .author { display: flex; align-items: center; gap: 6px; min-width: 0; }
+  .ava { width: 22px; height: 22px; border-radius: 50%; background: var(--surface-2); display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 600; color: var(--text-2); flex-shrink: 0; }
+  .aname { font-size: 12px; color: var(--text-2); white-space: nowrap; }
+  .dept { font-size: 10px; color: var(--text-3); background: var(--surface-2); border-radius: 4px; padding: 1px 5px; white-space: nowrap; }
+  .mini-acts { display: flex; gap: 9px; flex-shrink: 0; }
+  .mini-act { display: flex; align-items: center; gap: 3px; font-size: 11px; color: var(--text-3); }
+  .mini-act svg { width: 13px; height: 13px; }
+  .mini-act.on { color: var(--org); }
+  .card-manage { display: flex; gap: 8px; margin-top: 12px; padding-top: 12px; border-top: 0.5px solid var(--border); }
+  .manage-btn { flex: 1; display: flex; align-items: center; justify-content: center; gap: 5px; border: 0.5px solid var(--border-strong); background: var(--surface); border-radius: var(--radius-md); padding: 7px; font-size: 12px; color: var(--text-2); cursor: pointer; font-family: inherit; }
+  .manage-btn svg { width: 13px; height: 13px; }
+  .manage-btn:hover { border-color: var(--org); color: var(--org); }
+  .manage-btn.del:hover { border-color: var(--danger); color: var(--danger); }
+
+  .empty { text-align: center; padding: 56px 20px; color: var(--text-3); font-size: 13px; line-height: 1.7; }
+  .empty svg { width: 30px; height: 30px; margin-bottom: 12px; color: var(--border-strong); }
+
+  .feed { max-width: 640px; margin: 0 auto; }
+  .feed-section { margin-bottom: 28px; }
+  .feed-section h3 { font-size: 13px; font-weight: 500; color: var(--text-2); margin-bottom: 6px; }
+  .feed-item { display: flex; align-items: flex-start; gap: 11px; padding: 12px 4px; border-bottom: 0.5px solid var(--border); cursor: pointer; }
+  .feed-item:hover { background: var(--surface); }
+  .feed-ava { width: 34px; height: 34px; border-radius: 50%; background: var(--surface-2); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; color: var(--text-2); flex-shrink: 0; position: relative; }
+  .feed-badge { position: absolute; bottom: -2px; right: -2px; width: 16px; height: 16px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 2px solid var(--bg); }
+  .feed-badge svg { width: 9px; height: 9px; color: #fff; }
+  .feed-badge.like { background: var(--org); }
+  .feed-badge.comment { background: #5b8def; }
+  .feed-text { flex: 1; font-size: 13px; line-height: 1.55; color: var(--text-1); }
+  .feed-text b { font-weight: 500; }
+  .feed-text .q { color: var(--text-2); }
+  .feed-time { font-size: 11px; color: var(--text-3); margin-top: 3px; }
+  .feed-thumb { width: 38px; height: 38px; border-radius: 6px; background: var(--org-light); color: var(--org-muted); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .feed-thumb svg { width: 16px; height: 16px; }
+
+  .overlay { display: none; position: fixed; inset: 0; background: rgba(20,18,16,0.4); z-index: 100; align-items: center; justify-content: center; padding: 24px; }
+  .overlay.open { display: flex; animation: fade 0.15s ease; }
+  @keyframes fade { from { opacity: 0; } to { opacity: 1; } }
+  .modal { background: var(--surface); border-radius: var(--radius-lg); width: 580px; max-width: 100%; max-height: 86vh; overflow-y: auto; padding: 30px 30px 26px; position: relative; }
+  .modal-close { position: absolute; top: 18px; right: 20px; background: none; border: none; cursor: pointer; color: var(--text-3); padding: 4px; line-height: 0; border-radius: 6px; }
+  .modal-close:hover { color: var(--text-1); background: var(--surface-2); }
+  .modal-close svg { width: 18px; height: 18px; }
+
+  .modal-cat { font-size: 11px; font-weight: 500; background: var(--org-light); color: var(--org-muted); border-radius: 20px; padding: 3px 10px; display: inline-block; margin-bottom: 13px; }
+  .modal-title { font-size: 18px; font-weight: 500; margin-bottom: 9px; line-height: 1.45; padding-right: 24px; }
+  .modal-desc { font-size: 13px; color: var(--text-2); line-height: 1.7; margin-bottom: 22px; }
+  .prompt-label { font-size: 11px; font-weight: 500; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 9px; }
+  .modal-prompt { background: var(--surface-2); border-left: 2px solid var(--org); border-radius: 0 6px 6px 0; padding: 14px 16px; font-size: 12.5px; color: var(--text-1); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; line-height: 1.8; white-space: pre-wrap; margin-bottom: 18px; }
+  .author-row { display: flex; align-items: center; gap: 7px; margin-bottom: 14px; }
+  .author-row .ava { width: 27px; height: 27px; font-size: 11px; }
+  .author-row .aname { font-size: 12.5px; }
+  .author-row .date { font-size: 11px; color: var(--text-3); margin-left: auto; }
+  .mine-tag { font-size: 10px; color: var(--org-muted); background: var(--org-light); border-radius: 4px; padding: 1px 6px; margin-left: 4px; }
+  .stat-strip { display: flex; gap: 16px; font-size: 11.5px; color: var(--text-3); margin-bottom: 18px; }
+  .stat-strip span { display: flex; align-items: center; gap: 4px; }
+  .stat-strip svg { width: 13px; height: 13px; }
+  .stat-strip b { font-weight: 500; color: var(--text-2); }
+  .divider { border: none; border-top: 0.5px solid var(--border); margin-bottom: 18px; }
+  .actions { display: flex; align-items: center; gap: 8px; margin-bottom: 24px; flex-wrap: wrap; }
+  .act-btn { display: flex; align-items: center; gap: 6px; border: 0.5px solid var(--border-strong); border-radius: var(--radius-md); background: var(--surface); cursor: pointer; font-size: 12.5px; color: var(--text-2); padding: 8px 13px; font-family: inherit; transition: all 0.15s; }
+  .act-btn svg { width: 14px; height: 14px; }
+  .act-btn:hover { border-color: var(--org); color: var(--org); }
+  .act-btn.liked { border-color: var(--org); color: var(--org); background: var(--org-light); }
+  .act-btn.saved { border-color: var(--org); color: var(--org); background: var(--org-light); }
+  .act-btn.run { background: var(--org); border-color: var(--org); color: #fff; }
+  .act-btn.run:hover { background: var(--org-hover); color: #fff; }
+  .act-btn.del:hover { border-color: var(--danger); color: var(--danger); }
+  .toast { font-size: 11px; color: var(--text-3); opacity: 0; transition: opacity 0.2s; }
+  .toast.show { opacity: 1; }
+  .comments-label { font-size: 12.5px; font-weight: 500; color: var(--text-2); margin-bottom: 14px; }
+  .comments-label span { color: var(--org); }
+  .comment-item { padding: 11px 0; border-bottom: 0.5px solid var(--border); }
+  .comment-item:last-child { border-bottom: none; }
+  .comment-head { display: flex; align-items: center; gap: 7px; margin-bottom: 6px; }
+  .c-ava { width: 21px; height: 21px; border-radius: 50%; background: var(--surface-2); display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 600; color: var(--text-2); }
+  .c-name { font-size: 12px; color: var(--text-2); font-weight: 500; }
+  .c-dept { font-size: 10px; color: var(--text-3); background: var(--surface-2); border-radius: 4px; padding: 1px 5px; }
+  .c-date { font-size: 10px; color: var(--text-3); margin-left: auto; }
+  .c-text { font-size: 12.5px; line-height: 1.6; padding-left: 28px; }
+  .c-empty { font-size: 12px; color: var(--text-3); padding: 6px 0; }
+  .comment-input-row { display: flex; gap: 8px; margin-top: 16px; }
+  .comment-input { flex: 1; border: 0.5px solid var(--border-strong); border-radius: var(--radius-md); background: var(--surface-2); padding: 9px 12px; font-size: 12.5px; color: var(--text-1); outline: none; font-family: inherit; }
+  .comment-input:focus { border-color: var(--org); background: var(--surface); }
+  .comment-submit { background: var(--org); color: #fff; border: none; border-radius: var(--radius-md); padding: 9px 16px; font-size: 12.5px; cursor: pointer; white-space: nowrap; font-family: inherit; }
+  .comment-submit:hover { background: var(--org-hover); }
+
+  .form-title { font-size: 18px; font-weight: 500; margin-bottom: 4px; }
+  .form-sub { font-size: 12.5px; color: var(--text-2); margin-bottom: 22px; }
+  .field { margin-bottom: 16px; }
+  .field label { display: block; font-size: 12px; font-weight: 500; color: var(--text-2); margin-bottom: 6px; }
+  .field input, .field select, .field textarea { width: 100%; border: 0.5px solid var(--border-strong); border-radius: var(--radius-md); background: var(--surface-2); padding: 10px 12px; font-size: 13px; color: var(--text-1); outline: none; font-family: inherit; }
+  .field textarea { resize: vertical; line-height: 1.65; }
+  .field .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12.5px; }
+  .field input:focus, .field select:focus, .field textarea:focus { border-color: var(--org); background: var(--surface); }
+  .field .hint { font-size: 11px; color: var(--text-3); margin-top: 5px; }
+  .form-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 22px; }
+  .btn-ghost { background: var(--surface); border: 0.5px solid var(--border-strong); color: var(--text-2); border-radius: var(--radius-md); padding: 10px 18px; font-size: 13px; cursor: pointer; font-family: inherit; }
+  .btn-ghost:hover { border-color: var(--text-3); }
+  .btn-primary { background: var(--org); border: none; color: #fff; border-radius: var(--radius-md); padding: 10px 20px; font-size: 13px; font-weight: 500; cursor: pointer; font-family: inherit; }
+  .btn-primary:hover { background: var(--org-hover); }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="logo">
+    <div class="logo-sq"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M15.09 14c.18-.98.65-1.74 1.41-2.5A4.65 4.65 0 0 0 18 8 6 6 0 0 0 6 8c0 1 .23 2.23 1.5 3.5A4.61 4.61 0 0 1 8.91 14"/></svg></div>
+    AI 공유 허브 <span class="logo-sub">· 한화투자증권</span>
+  </div>
+  <div class="mode-switch" id="mode-switch">
+    <button class="mode-btn on" data-mode="prompt" onclick="switchMode('prompt')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M9 13h6"/><path d="M9 17h3"/></svg> 프롬프트</button>
+    <button class="mode-btn" data-mode="agent" onclick="switchMode('agent')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8V4H8"/><rect width="16" height="12" x="4" y="8" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M15 13v2"/><path d="M9 13v2"/></svg> 에이전트</button>
+  </div>
+  <div class="user-pill" onclick="switchTab('activity')"><span class="dot">권</span> 권다은 · AI Roll-up TFT</div>
+</div>
+
+<div class="subbar">
+  <div class="subtabs" id="subtabs"></div>
+  <div class="subbar-right">
+    <div class="search-wrap">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+      <input type="text" id="search" placeholder="프롬프트 검색..." oninput="renderView()" />
+    </div>
+    <div class="subbar-actions" id="prompt-actions">
+      <button class="make-btn" onclick="openCreate()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .962 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.962 0z"/><path d="M20 3v4"/><path d="M22 5h-4"/></svg> 프롬프트 만들기</button>
+      <button class="reg-btn" onclick="openRegister()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg> 프롬프트 등록</button>
+    </div>
+    <div class="subbar-actions" id="agent-actions" style="display:none">
+      <button class="make-btn" onclick="openAgentCreate()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .962 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.962 0z"/><path d="M20 3v4"/><path d="M22 5h-4"/></svg> 에이전트 만들기</button>
+      <button class="reg-btn" onclick="openAgentRegister()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg> 에이전트 등록</button>
+    </div>
+  </div>
+</div>
+
+<div class="content">
+  <div class="view-header" id="view-header"></div>
+  <div class="grid" id="grid"></div>
+  <div class="feed" id="feed" style="display:none"></div>
+</div>
+
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button>
+    <div id="modal-body"></div>
+  </div>
+</div>
+
+<div class="overlay" id="reg-overlay">
+  <div class="modal">
+    <button class="modal-close" onclick="closeRegister()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button>
+    <div class="form-title" id="reg-heading">프롬프트 등록</div>
+    <div class="form-sub">동료들이 바로 쓸 수 있도록 프롬프트를 공유해보세요.</div>
+    <div class="field">
+      <label>카테고리</label>
+      <select id="reg-cat"><option>리서치</option><option>고객응대</option><option>업무보고</option><option>기획</option><option>코딩</option><option>번역/작성</option><option>컴플라이언스</option></select>
+    </div>
+    <div class="field"><label>제목</label><input type="text" id="reg-title" placeholder="예: 종목 리서치 리포트 핵심 요약" /></div>
+    <div class="field"><label>설명</label><textarea id="reg-desc" rows="2" placeholder="이 프롬프트가 무엇을 해주는지 한두 줄로 설명해주세요."></textarea></div>
+    <div class="field"><label>프롬프트 내용</label><textarea id="reg-body" rows="6" class="mono" placeholder="실제 프롬프트를 입력하세요. {{변수}} 형태로 입력값을 표시할 수 있어요."></textarea><div class="hint">예: 다음 리포트를 읽고 핵심 투자포인트 3가지를 요약해주세요. 리포트: {{내용}}</div></div>
+    <div class="form-actions">
+      <button class="btn-ghost" onclick="closeRegister()">취소</button>
+      <button class="btn-primary" id="reg-submit-btn" onclick="submitRegister()">등록하기</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="create-overlay">
+  <div class="modal">
+    <button class="modal-close" onclick="closeCreate()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button>
+    <div class="form-title">프롬프트 만들기</div>
+    <div class="form-sub">하려는 업무를 입력하면 Claude에게 시키기 좋은 형태로 프롬프트를 만들어드려요.</div>
+
+    <div id="create-step1">
+      <div class="field">
+        <label>분야 (선택)</label>
+        <select id="create-cat"><option>리서치</option><option>고객응대</option><option>업무보고</option><option>기획</option><option>코딩</option><option>번역/작성</option><option>컴플라이언스</option></select>
+      </div>
+      <div class="field">
+        <label>어떤 업무를 하고 싶으세요?</label>
+        <textarea id="create-task" rows="4" placeholder="예: 고객에게 보낼 주간 시장 동향 요약 메일을 작성하고 싶어요. 너무 딱딱하지 않게, 핵심만 3가지로."></textarea>
+        <div class="hint">목표·대상·원하는 결과물을 적을수록 더 좋은 프롬프트가 만들어져요.</div>
+      </div>
+      <div class="form-actions">
+        <button class="btn-ghost" onclick="closeCreate()">취소</button>
+        <button class="btn-primary" onclick="runGenerate()">프롬프트 생성</button>
+      </div>
+    </div>
+
+    <div id="create-step2" style="display:none">
+      <div class="gen-loading"><div class="spinner"></div> 업무에 맞는 프롬프트를 만들고 있어요…</div>
+    </div>
+
+    <div id="create-step3" style="display:none">
+      <div class="prompt-label">생성된 프롬프트</div>
+      <div class="modal-prompt" id="gen-output"></div>
+      <div class="actions">
+        <button class="act-btn run" onclick="runGenerated()"><svg viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z"/></svg> Claude로 실행</button>
+        <button class="act-btn" onclick="copyGenerated()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg> 복사</button>
+        <button class="act-btn" onclick="regenerate()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M3 21v-5h5"/></svg> 다시 만들기</button>
+        <span class="toast" id="gen-toast"></span>
+      </div>
+      <div class="gen-note">마음에 들면 그대로 등록하거나, 등록 화면에서 자유롭게 다듬을 수 있어요.</div>
+      <div class="form-actions">
+        <button class="btn-ghost" onclick="backToCreateInput()">처음으로</button>
+        <button class="btn-primary" onclick="useGenerated()">이 프롬프트 등록하기</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="agent-reg-overlay">
+  <div class="modal">
+    <button class="modal-close" onclick="closeAgentRegister()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button>
+    <div class="form-title" id="agent-reg-heading">에이전트 등록</div>
+    <div class="form-sub">반복 업무를 대신 처리하는 나만의 에이전트를 만들어 공유해보세요.</div>
+    <div class="field">
+      <label>카테고리</label>
+      <select id="agent-reg-cat"><option>리서치</option><option>고객응대</option><option>업무보고</option><option>기획</option><option>코딩</option><option>번역/작성</option><option>컴플라이언스</option></select>
+    </div>
+    <div class="field"><label>에이전트 이름</label><input type="text" id="agent-reg-name" placeholder="예: 리서치 어시스턴트" /></div>
+    <div class="field"><label>설명</label><textarea id="agent-reg-desc" rows="2" placeholder="이 에이전트가 어떤 일을 해주는지 한두 줄로 설명해주세요."></textarea></div>
+    <div class="field"><label>에이전트 지침 (시스템 프롬프트)</label><textarea id="agent-reg-inst" rows="6" class="mono" placeholder="이 에이전트가 항상 따를 역할과 규칙을 적어주세요."></textarea><div class="hint">예: 당신은 증권사 리서치 보조 에이전트입니다. 리포트를 받으면 핵심 투자포인트·리스크를 정리합니다…</div></div>
+    <div class="field"><label>예시 작업 (한 줄에 하나씩)</label><textarea id="agent-reg-tasks" rows="3" placeholder="이 리포트 핵심만 요약해줘&#10;A와 B 종목 비교해줘"></textarea></div>
+    <div class="form-actions">
+      <button class="btn-ghost" onclick="closeAgentRegister()">취소</button>
+      <button class="btn-primary" id="agent-reg-submit-btn" onclick="submitAgentRegister()">등록하기</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="agent-create-overlay">
+  <div class="modal">
+    <button class="modal-close" onclick="closeAgentCreate()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button>
+    <div class="form-title">에이전트 만들기</div>
+    <div class="form-sub">어떤 일을 맡기고 싶은지 입력하면, 그 일을 수행하는 에이전트를 만들어드려요.</div>
+
+    <div id="agent-create-step1">
+      <div class="field">
+        <label>분야 (선택)</label>
+        <select id="agent-create-cat"><option>리서치</option><option>고객응대</option><option>업무보고</option><option>기획</option><option>코딩</option><option>번역/작성</option><option>컴플라이언스</option></select>
+      </div>
+      <div class="field">
+        <label>어떤 일을 하는 에이전트를 만들고 싶으세요?</label>
+        <textarea id="agent-create-task" rows="4" placeholder="예: 애널리스트 리포트를 넣으면 핵심 투자포인트와 리스크를 정리해주고, 종목끼리 비교도 해주는 에이전트."></textarea>
+        <div class="hint">맡길 업무·입력·원하는 결과를 적을수록 더 똑똑한 에이전트가 만들어져요.</div>
+      </div>
+      <div class="form-actions">
+        <button class="btn-ghost" onclick="closeAgentCreate()">취소</button>
+        <button class="btn-primary" onclick="runAgentGenerate()">에이전트 생성</button>
+      </div>
+    </div>
+
+    <div id="agent-create-step2" style="display:none">
+      <div class="gen-loading"><div class="spinner"></div> 업무에 맞는 에이전트를 설계하고 있어요…</div>
+    </div>
+
+    <div id="agent-create-step3" style="display:none">
+      <div class="modal-icon-row"><div class="agent-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8V4H8"/><rect width="16" height="12" x="4" y="8" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M15 13v2"/><path d="M9 13v2"/></svg></div><div><div class="prompt-label" style="margin-bottom:2px;">생성된 에이전트</div><div class="modal-title" id="agent-gen-name" style="font-size:16px;"></div></div></div>
+      <div class="prompt-label">지침</div>
+      <div class="modal-prompt" id="agent-gen-inst"></div>
+      <div class="prompt-label">예시 작업</div>
+      <div class="task-chips" id="agent-gen-tasks"></div>
+      <div class="actions">
+        <button class="act-btn run" onclick="runAgentGenerated()"><svg viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z"/></svg> Claude로 실행</button>
+        <button class="act-btn" onclick="regenerateAgent()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M3 21v-5h5"/></svg> 다시 만들기</button>
+        <span class="toast" id="agent-gen-toast"></span>
+      </div>
+      <div class="gen-note">마음에 들면 그대로 등록하거나, 등록 화면에서 자유롭게 다듬을 수 있어요.</div>
+      <div class="form-actions">
+        <button class="btn-ghost" onclick="backToAgentInput()">처음으로</button>
+        <button class="btn-primary" onclick="useAgentGenerated()">이 에이전트 등록하기</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const ME = { name:"권다은", dept:"AI Roll-up TFT", ava:"권" };
+const ICON = {
+  heart: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>',
+  heartFill: '<svg viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>',
+  copy: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>',
+  comment: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/></svg>',
+  zap: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z"/></svg>',
+  zapFill: '<svg viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z"/></svg>',
+  share: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" x2="15.42" y1="13.51" y2="17.49"/><line x1="15.41" x2="8.59" y1="6.51" y2="10.49"/></svg>',
+  flame: '<svg viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>',
+  star: '<svg viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15 9 22 9 17 14 19 21 12 17 5 21 7 14 2 9 9 9 12 2"/></svg>',
+  bookmark: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>',
+  bookmarkFill: '<svg viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>',
+  doc: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>',
+  edit: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>',
+  trash: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>',
+  bot: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8V4H8"/><rect width="16" height="12" x="4" y="8" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M15 13v2"/><path d="M9 13v2"/></svg>',
+  check: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>',
+  play: '<svg viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"><polygon points="6 3 20 12 6 21 6 3"/></svg>',
+  upload: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>',
+  xmini: '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>'
+};
+
+const AWARD = {
+  like:   { cls:'like',   icon:ICON.heartFill, text:'최근 7일간 가장 좋아요가 많았어요' },
+  hot:    { cls:'hot',    icon:ICON.flame,     text:'Hot · 이번 주 댓글이 가장 많아요' },
+  useful: { cls:'useful', icon:ICON.star,      text:'최근 7일간 가장 유용한 프롬프트 (실행·복사 최다)' }
+};
+
+const prompts = [
+  { id:10, cat:"고객응대", date:"06.24", title:"오늘의 한 줄 시장 멘트 만들기", desc:"입력값 없이 바로 실행돼요. 고객에게 보낼 짧고 친근한 시장 인사 문구를 즉석에서 만들어줍니다.", body:"증권사 PB가 오늘 아침 고객에게 보낼 짧은 인사 메시지를 3가지 버전으로 만들어줘.\n각 버전은 2문장 이내로, 친근하지만 신뢰감 있는 톤으로. 투자 권유나 수익 보장 표현은 빼줘.", author:"이도현", dept:"WM영업", ava:"이", likes:40, copies:62, runs:35, liked:false,
+    comments:[{name:"강태양",dept:"WM영업",ava:"강",date:"06.24",text:"바로 복사해서 쓰기 딱 좋아요. 결과도 금방 나오고!"}] },
+  { id:1, cat:"리서치", date:"06.23", title:"종목 리서치 리포트 핵심 요약", desc:"애널리스트 리포트나 기업 분석 자료를 입력하면 투자포인트·리스크·목표주가 근거를 표로 정리해줍니다.", body:"다음 리서치 리포트를 읽고 아래 형식으로 정리해주세요.\n\n① 핵심 투자포인트 3가지\n② 주요 리스크 2가지\n③ 목표주가 산정 근거\n\n각 항목은 2줄 이내로 요약하고, 마지막에 한 줄 투자의견(매수/중립/매도)을 제시하세요.\n\n리포트: {{리포트내용}}", author:"박소영", dept:"리서치센터", ava:"박", likes:84, copies:210, runs:96, liked:true,
+    comments:[{name:"윤서연",dept:"해외주식",ava:"윤",date:"06.24",text:"영문 리포트에도 잘 작동해요. 번역까지 같이 해줘서 편합니다."},{name:"강태양",dept:"WM영업",ava:"강",date:"06.24",text:"고객 상담 전에 빠르게 핵심만 보기 좋네요."}] },
+  { id:2, cat:"고객응대", date:"06.22", title:"민원 답변 톤 교정 & 리스크 표현 점검", desc:"작성한 민원 답변 초안을 공손하고 명확한 금융사 공식 톤으로 다듬고, 법적 리스크가 될 수 있는 표현을 점검합니다.", body:"아래 고객 민원 답변 초안을 금융투자회사 공식 어조로 다듬어주세요.\n\n- 과도한 사과 표현은 줄이고 사실 중심으로\n- 법적 책임 인정으로 해석될 수 있는 문장은 중립적으로 수정\n- 단정적 수익 보장 표현이 있으면 경고\n\n초안: {{답변초안}}", author:"최민준", dept:"컴플라이언스", ava:"최", likes:61, copies:155, runs:51, liked:false,
+    comments:[{name:"이지훈",dept:"디지털RND",ava:"이",date:"06.23",text:"리스크 표현 잡아주는 게 진짜 유용합니다."},{name:"박소영",dept:"리서치센터",ava:"박",date:"06.23",text:"톤 교정만으로 답변 품질이 확 올라가요."},{name:"한지우",dept:"리서치센터",ava:"한",date:"06.24",text:"단정적 보장 표현 경고가 컴플라이언스 관점에서 좋네요."},{name:"강태양",dept:"WM영업",ava:"강",date:"06.24",text:"고객 응대팀 전체에 공유했어요!"},{name:"정하은",dept:"전략기획",ava:"정",date:"06.24",text:"표준 답변 템플릿 만들 때도 활용 중입니다."}] },
+  { id:3, cat:"업무보고", date:"06.21", title:"주간 업무보고 자동 초안 작성기", desc:"한 주간 업무 내역을 붙여넣으면 팀장 보고용 포맷으로 분류·요약해 보고서 초안을 만들어줍니다.", body:"당신은 금융투자업 팀장 보고 전문 비서입니다.\n아래 업무 내역을 [완료 / 진행 중 / 예정]으로 분류하고, 핵심 성과와 이슈/리스크를 각각 3줄 이내로 요약한 뒤 주간보고 형식으로 작성해주세요.\n\n업무 내역: {{업무내역}}", author:"권다은", dept:"AI Roll-up TFT", ava:"권", likes:57, copies:188, runs:88, liked:false,
+    comments:[{name:"정하은",dept:"전략기획",ava:"정",date:"06.22",text:"이슈/리스크 분리해주는 게 보고할 때 편해요!"}] },
+  { id:4, cat:"리서치", date:"06.20", title:"DART 공시 자료 빠른 해설", desc:"전자공시(DART) 원문을 붙여넣으면 핵심 내용, 주가 영향, 투자자 관점 시사점을 정리해줍니다.", body:"다음 전자공시 자료를 읽고 아래를 정리해주세요.\n\n1. 공시 핵심 내용 (3줄 요약)\n2. 주가에 미칠 수 있는 영향 (긍정/부정/중립과 그 이유)\n3. 투자자 관점에서 추가로 확인해야 할 점\n\n전문 용어는 일반 투자자도 이해할 수 있게 풀어주세요.\n\n공시 원문: {{공시내용}}", author:"한지우", dept:"리서치센터", ava:"한", likes:49, copies:121, runs:44, liked:true,
+    comments:[{name:"박소영",dept:"리서치센터",ava:"박",date:"06.21",text:"정정공시 해석할 때 특히 도움돼요."}] },
+  { id:5, cat:"고객응대", date:"06.19", title:"펀드·ETF 비교 설명 자료 작성", desc:"여러 상품의 정보를 입력하면 고객 눈높이에 맞춰 비교 설명 자료를 만들어줍니다. 위험등급·수수료·특징 정리.", body:"아래 펀드/ETF 상품들을 고객에게 설명할 비교 자료로 만들어주세요.\n\n- 비교 항목: 운용전략, 위험등급, 총보수, 주요 편입자산, 적합한 투자 성향\n- 표 형식으로 정리\n- 마지막에 '투자 전 유의사항' 문구 포함 (원금 비보장 등)\n\n상품 정보: {{상품정보}}", author:"강태양", dept:"WM영업", ava:"강", likes:43, copies:97, runs:30, liked:false, comments:[] },
+  { id:6, cat:"번역/작성", date:"06.18", title:"영문 IR·실적자료 번역 및 요약", desc:"해외 기업의 IR 자료나 어닝콜 스크립트를 한국어로 번역하고 핵심 수치·가이던스를 요약합니다.", body:"아래 영문 IR 자료를 자연스러운 한국어로 번역하고, 별도 섹션으로 다음을 요약해주세요.\n\n■ 핵심 재무 수치: 매출, 영업이익, EPS (전년 대비 증감 포함)\n■ 경영진 가이던스 / 향후 전망\n■ 시장이 주목할 만한 코멘트\n\n자료: {{영문텍스트}}", author:"윤서연", dept:"해외주식", ava:"윤", likes:38, copies:84, runs:41, liked:true, comments:[] },
+  { id:7, cat:"코딩", date:"06.16", title:"시세 데이터 조회 SQL 생성기", desc:"원하는 조건을 자연어로 설명하면 시세·거래 데이터 조회용 SQL 쿼리로 변환해줍니다. 주석 포함.", body:"다음 조건에 맞는 SQL 쿼리를 작성해주세요.\n\nDB 종류: {{Oracle/PostgreSQL 등}}\n테이블 구조: {{테이블명과 컬럼}}\n원하는 결과: {{조회조건}}\n\n- 가독성을 위해 별칭과 주석을 달아주세요\n- 대용량 조회 시 성능 주의점도 한 줄 코멘트로 알려주세요", author:"강태양", dept:"IT개발팀", ava:"강", likes:31, copies:66, runs:22, liked:false, comments:[] },
+  { id:8, cat:"기획", date:"06.15", title:"회의록 정리 & 액션아이템 추출", desc:"회의 중 메모를 붙여넣으면 논의 요약·결정사항·액션아이템(담당자/기한)을 자동으로 분리 정리합니다.", body:"아래 회의 메모를 바탕으로 정리해주세요.\n\n① 논의 요약\n② 결정 사항\n③ 액션아이템 (담당자 / 기한 포함, 표로)\n④ 다음 회의 안건 후보\n\n메모: {{회의메모}}", author:"권다은", dept:"AI Roll-up TFT", ava:"권", likes:27, copies:59, runs:18, liked:false, comments:[] },
+  { id:9, cat:"컴플라이언스", date:"06.12", title:"상품 약관 쉬운 설명 변환", desc:"복잡한 금융상품 약관·투자설명서 문구를 고객이 이해하기 쉬운 표현으로 바꿔줍니다. 원래 의미는 유지.", body:"아래 금융상품 약관/투자설명서 문구를 일반 고객이 이해할 수 있는 쉬운 표현으로 바꿔주세요.\n\n- 법적 의미는 바꾸지 말 것\n- 어려운 용어는 괄호로 짧게 설명\n- 고객에게 불리할 수 있는 조건은 굵게 표시하고 따로 강조\n\n원문: {{약관문구}}", author:"최민준", dept:"컴플라이언스", ava:"최", likes:22, copies:41, runs:12, liked:false, comments:[] }
+];
+
+const state = prompts.map(p => ({ ...p, saved: !!p.saved, comments: p.comments.map(c => ({...c})) }));
+state.forEach(p => { if (p.id === 2 || p.id === 5) p.saved = true; });
+
+const notifications = [
+  { type:"like", actor:"박소영", ava:"박", title:"주간 업무보고 자동 초안 작성기", promptId:3, time:"2시간 전" },
+  { type:"comment", actor:"정하은", ava:"정", title:"주간 업무보고 자동 초안 작성기", promptId:3, text:"이슈/리스크 분리해주는 게 보고할 때 편해요!", time:"어제" },
+  { type:"like", actor:"이지훈", ava:"이", title:"주간 업무보고 자동 초안 작성기", promptId:3, time:"어제" },
+  { type:"like", actor:"강태양", ava:"강", title:"주간 업무보고 자동 초안 작성기", promptId:3, time:"2일 전" }
+];
+
+let currentTab = 'home';
+let currentMode = 'prompt';
+let editingId = null;
+function esc(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function today(){ const d=new Date(); return String(d.getMonth()+1).padStart(2,'0')+'.'+String(d.getDate()).padStart(2,'0'); }
+function isMine(p){ return p.author === ME.name; }
+function searchVal(){ return (document.getElementById('search').value||'').trim().toLowerCase(); }
+
+function cardHtml(p, rank, mine, awardKind){
+  const award = awardKind ? AWARD[awardKind] : null;
+  const bannerHtml = award ? `<div class="award-banner ${award.cls}">${award.icon} ${award.text}</div>` : '';
+  const rankHtml = rank ? `<div class="rank ${rank<=3?'top':''}">${rank}위</div>` : '';
+  const manageHtml = mine ? `
+      <div class="card-manage">
+        <button class="manage-btn" onclick="event.stopPropagation(); openEdit(${p.id})">${ICON.edit} 수정</button>
+        <button class="manage-btn del" onclick="event.stopPropagation(); deletePrompt(${p.id})">${ICON.trash} 삭제</button>
+      </div>` : '';
+  return `
+    <div class="card" onclick="openModal(${p.id})">
+      ${bannerHtml}${rankHtml}
+      <div class="card-head"><span class="cat-badge">${p.cat}</span><div class="card-head-right"><button class="card-save ${p.saved?'on':''}" onclick="event.stopPropagation(); toggleSave(${p.id})" title="저장">${p.saved?ICON.bookmarkFill:ICON.bookmark}</button><span class="card-date">${p.date}</span></div></div>
+      <div class="card-title">${esc(p.title)}</div>
+      <div class="card-desc">${esc(p.desc)}</div>
+      <div class="card-foot">
+        <div class="author"><div class="ava">${p.ava}</div><span class="aname">${p.author}</span><span class="dept">${p.dept}</span></div>
+        <div class="mini-acts">
+          <div class="mini-act">${ICON.heart} ${p.likes}</div>
+          <div class="mini-act">${ICON.zap} ${p.runs}</div>
+          <div class="mini-act">${ICON.copy} ${p.copies}</div>
+          <div class="mini-act">${ICON.comment} ${p.comments.length}</div>
+        </div>
+      </div>
+      ${manageHtml}
+    </div>`;
+}
+
+function pickAwards(){
+  const ex = [];
+  const pick = (fn) => { const c = state.filter(p=>!ex.includes(p.id)); if(!c.length) return null; c.sort((a,b)=>fn(b)-fn(a)); const w=c[0]; ex.push(w.id); return w; };
+  const like = pick(p=>p.likes);
+  const hot = pick(p=>p.comments.length);
+  const useful = pick(p=>p.runs + p.copies);
+  return [ like&&{p:like,kind:'like'}, hot&&{p:hot,kind:'hot'}, useful&&{p:useful,kind:'useful'} ].filter(Boolean);
+}
+
+function renderView(){
+  const grid = document.getElementById('grid');
+  const feed = document.getElementById('feed');
+  const header = document.getElementById('view-header');
+  const f = searchVal();
+
+  const agentMode = currentMode === 'agent';
+  document.getElementById('prompt-actions').style.display = agentMode ? 'none' : 'flex';
+  document.getElementById('agent-actions').style.display = agentMode ? 'flex' : 'none';
+  document.getElementById('search').placeholder = agentMode ? '에이전트 검색...' : '프롬프트 검색...';
+
+  if (agentMode){
+    feed.style.display='none'; grid.style.display='grid';
+    let alist = agentState.slice();
+    let amine = false;
+    if (currentTab === 'a-home'){
+      header.innerHTML = `<h2>에이전트</h2><p>임직원이 만들어 공유한 에이전트를 둘러보세요. 클릭하면 바로 실행할 수 있어요.</p>`;
+    } else if (currentTab === 'a-popular'){
+      header.innerHTML = `<h2>인기 에이전트</h2><p>이번 주 가장 많이 쓰인 에이전트예요.</p>`;
+      alist.sort((a,b)=> (b.runs+b.likes) - (a.runs+a.likes));
+    } else if (currentTab === 'a-saved'){
+      header.innerHTML = `<h2>저장한 에이전트</h2><p>저장 버튼을 누른 에이전트만 모여요. 저장 내역은 나만 볼 수 있어요.</p>`;
+      alist = alist.filter(a=>a.saved);
+    } else if (currentTab === 'a-mine'){
+      header.innerHTML = `<h2>내 에이전트</h2><p>내가 만든 에이전트예요. 수정하거나 삭제할 수 있어요.</p>`;
+      alist = alist.filter(a=>a.author===ME.name); amine = true;
+    }
+    if (f) alist = alist.filter(a => (a.name+a.desc+a.cat+a.author).toLowerCase().includes(f));
+    if (!alist.length){
+      grid.style.display='block';
+      let msg = '검색 결과가 없어요.';
+      if (currentTab==='a-saved' && !f) msg = '아직 저장한 에이전트가 없어요.<br>마음에 드는 에이전트를 저장해두면 여기 모여요.';
+      if (currentTab==='a-mine' && !f) msg = '아직 만든 에이전트가 없어요.<br>오른쪽 위 \'에이전트 만들기\'로 첫 에이전트를 만들어보세요.';
+      if (currentTab==='a-home' && !f) msg = '아직 등록된 에이전트가 없어요.';
+      grid.innerHTML = `<div class="empty">${ICON.bot}<br>${msg}</div>`;
+      return;
+    }
+    grid.innerHTML = alist.map(a => agentCardHtml(a, amine)).join('');
+    return;
+  }
+
+  if (currentTab === 'activity'){
+    grid.style.display='none'; feed.style.display='block';
+    header.innerHTML = `<h2>활동</h2><p>받은 알림과 내가 좋아요한 프롬프트를 모아봤어요.</p>`;
+    renderActivity(); return;
+  }
+  feed.style.display='none'; grid.style.display='grid';
+
+  if (currentTab === 'popular'){
+    header.innerHTML = `<h2>인기 프롬프트</h2><p>이번 주 가장 주목받은 프롬프트 3가지예요.</p>`;
+    const awards = pickAwards();
+    if (!awards.length){ grid.style.display='block'; grid.innerHTML = `<div class="empty">${ICON.bookmark}<br>아직 표시할 프롬프트가 없어요.</div>`; return; }
+    grid.innerHTML = awards.map(a => cardHtml(a.p, null, false, a.kind)).join('');
+    return;
+  }
+
+  let list = state.slice();
+  let mine = false;
+  if (currentTab === 'home'){
+    header.innerHTML = `<h2>전체 프롬프트</h2><p>임직원이 공유한 프롬프트를 둘러보세요.</p>`;
+  } else if (currentTab === 'saved'){
+    header.innerHTML = `<h2>저장한 프롬프트</h2><p>저장 버튼을 누른 프롬프트만 모여요. 저장 내역은 나만 볼 수 있어요.</p>`;
+    list = list.filter(p=>p.saved);
+  } else if (currentTab === 'mine'){
+    header.innerHTML = `<h2>내 프롬프트</h2><p>내가 작성한 프롬프트예요. 수정하거나 삭제할 수 있어요.</p>`;
+    list = list.filter(isMine); mine = true;
+  }
+  if (f) list = list.filter(p => (p.title+p.desc+p.cat+p.author).toLowerCase().includes(f));
+
+  if (!list.length){
+    grid.style.display='block';
+    let msg = '검색 결과가 없어요.';
+    if (currentTab==='saved' && !f) msg = '아직 저장한 프롬프트가 없어요.<br>마음에 드는 프롬프트를 저장해두면 여기 모여요.';
+    if (currentTab==='mine' && !f) msg = '아직 작성한 프롬프트가 없어요.<br>오른쪽 위 \'프롬프트 등록\'으로 첫 프롬프트를 공유해보세요.';
+    grid.innerHTML = `<div class="empty">${ICON.bookmark}<br>${msg}</div>`;
+    return;
+  }
+  grid.innerHTML = list.map(p => cardHtml(p, null, mine, null)).join('');
+}
+
+function renderActivity(){
+  const feed = document.getElementById('feed');
+  const myLikes = state.filter(p=>p.liked);
+  const notiHtml = notifications.map(n => `
+    <div class="feed-item" onclick="openModal(${n.promptId})">
+      <div class="feed-ava">${n.ava}<span class="feed-badge ${n.type==='like'?'like':'comment'}">${n.type==='like'?ICON.heartFill:ICON.comment}</span></div>
+      <div class="feed-text">
+        <b>${n.actor}</b>님이 회원님의 프롬프트 <span class="q">'${esc(n.title)}'</span>${n.type==='like'?'을 좋아합니다.':'에 댓글을 남겼습니다.'}
+        ${n.text?`<div style="color:var(--text-2);margin-top:3px;">"${esc(n.text)}"</div>`:''}
+        <div class="feed-time">${n.time}</div>
+      </div>
+      <div class="feed-thumb">${ICON.doc}</div>
+    </div>`).join('');
+  const likeHtml = myLikes.length ? myLikes.map(p => `
+    <div class="feed-item" onclick="openModal(${p.id})">
+      <div class="feed-ava">권<span class="feed-badge like">${ICON.heartFill}</span></div>
+      <div class="feed-text">회원님이 <span class="q">'${esc(p.title)}'</span>을 좋아합니다.<div class="feed-time">작성자 ${p.author} · ${p.dept}</div></div>
+      <div class="feed-thumb">${ICON.doc}</div>
+    </div>`).join('') : `<div class="c-empty">아직 좋아요한 프롬프트가 없어요.</div>`;
+  feed.innerHTML = `
+    <div class="feed-section"><h3>받은 알림</h3>${notiHtml}</div>
+    <div class="feed-section"><h3>내 좋아요</h3>${likeHtml}</div>`;
+}
+
+const TABS = {
+  prompt: [
+    { id:'home', label:'전체', icon:'<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></svg>' },
+    { id:'popular', label:'인기', icon:'<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>' },
+    { id:'saved', label:'저장', icon:'<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>' },
+    { id:'mine', label:'내 프롬프트', icon:'<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M9 13h6"/><path d="M9 17h3"/></svg>' }
+  ],
+  agent: [
+    { id:'a-home', label:'전체', icon:'<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></svg>' },
+    { id:'a-popular', label:'인기', icon:'<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>' },
+    { id:'a-saved', label:'저장', icon:'<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>' },
+    { id:'a-mine', label:'내 에이전트', icon:'<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8V4H8"/><rect width="16" height="12" x="4" y="8" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M15 13v2"/><path d="M9 13v2"/></svg>' }
+  ]
+};
+
+function renderSubtabs(){
+  const list = TABS[currentMode];
+  document.getElementById('subtabs').innerHTML = list.map(t =>
+    `<div class="tnav ${t.id===currentTab?'on':''}" onclick="switchTab('${t.id}')">${t.icon} ${t.label}${t.dot?'<span class="nav-dot" id="nav-dot"></span>':''}</div>`
+  ).join('');
+}
+
+function switchMode(mode){
+  currentMode = mode;
+  document.querySelectorAll('.mode-btn').forEach(b=>b.classList.toggle('on', b.dataset.mode===mode));
+  currentTab = (mode==='agent') ? 'a-home' : 'home';
+  renderSubtabs();
+  renderView();
+}
+
+function switchTab(tab){
+  currentMode = tab.startsWith('a-') ? 'agent' : 'prompt';
+  currentTab = tab;
+  document.querySelectorAll('.mode-btn').forEach(b=>b.classList.toggle('on', b.dataset.mode===currentMode));
+  renderSubtabs();
+  if (tab === 'activity'){ const d=document.getElementById('nav-dot'); if(d) d.style.display='none'; }
+  renderView();
+}
+
+function openModal(id){
+  const p = state.find(x=>x.id===id); if(!p) return;
+  const commentsHtml = p.comments.length
+    ? p.comments.map(c => `<div class="comment-item"><div class="comment-head"><div class="c-ava">${c.ava}</div><span class="c-name">${c.name}</span><span class="c-dept">${c.dept}</span><span class="c-date">${c.date}</span></div><div class="c-text">${esc(c.text)}</div></div>`).join('')
+    : `<div class="c-empty">아직 댓글이 없어요. 첫 댓글을 남겨보세요.</div>`;
+  const mineButtons = isMine(p) ? `
+      <button class="act-btn" onclick="editFromModal(${p.id})">${ICON.edit} 수정</button>
+      <button class="act-btn del" onclick="deleteFromModal(${p.id})">${ICON.trash} 삭제</button>` : '';
+  document.getElementById('modal-body').innerHTML = `
+    <span class="modal-cat">${p.cat}</span>
+    <div class="modal-title">${esc(p.title)}</div>
+    <div class="modal-desc">${esc(p.desc)}</div>
+    <div class="prompt-label">프롬프트</div>
+    <div class="modal-prompt">${esc(p.body)}</div>
+    <div class="author-row"><div class="ava">${p.ava}</div><span class="aname">${p.author}</span><span class="dept">${p.dept}</span>${isMine(p)?'<span class="mine-tag">내 글</span>':''}<span class="date">${p.date}</span></div>
+    <div class="stat-strip">
+      <span>${ICON.zap} Claude 실행 <b id="run-stat-${p.id}">${p.runs}</b></span>
+      <span>${ICON.copy} 복사 <b id="copy-stat-${p.id}">${p.copies}</b></span>
+      <span>${ICON.heart} 좋아요 <b id="like-stat-${p.id}">${p.likes}</b></span>
+      <span>${ICON.comment} 댓글 <b id="cmt-stat-${p.id}">${p.comments.length}</b></span>
+    </div>
+    <hr class="divider"/>
+    <div class="actions">
+      <button class="act-btn run" onclick="runInClaude(${p.id})">${ICON.zapFill} Claude로 실행</button>
+      <button class="act-btn ${p.liked?'liked':''}" id="like-btn-${p.id}" onclick="toggleLike(${p.id})">${p.liked?ICON.heartFill:ICON.heart} <span id="like-count-${p.id}">${p.likes}</span></button>
+      <button class="act-btn ${p.saved?'saved':''}" id="save-btn-${p.id}" onclick="toggleSave(${p.id})">${p.saved?ICON.bookmarkFill:ICON.bookmark} ${p.saved?'저장됨':'저장'}</button>
+      <button class="act-btn" onclick="copyPrompt(${p.id})">${ICON.copy} 복사</button>
+      <button class="act-btn" onclick="sharePrompt(${p.id})">${ICON.share} 공유</button>
+      ${mineButtons}
+      <span class="toast" id="toast-${p.id}"></span>
+    </div>
+    <div class="comments-label">댓글 <span>${p.comments.length}</span></div>
+    <div id="comment-list-${p.id}">${commentsHtml}</div>
+    <div class="comment-input-row"><input class="comment-input" id="comment-input-${p.id}" placeholder="댓글을 입력하세요..." onkeydown="if(event.key==='Enter')submitComment(${p.id})" /><button class="comment-submit" onclick="submitComment(${p.id})">등록</button></div>`;
+  document.getElementById('overlay').classList.add('open');
+}
+function closeModal(){ document.getElementById('overlay').classList.remove('open'); renderView(); }
+document.getElementById('overlay').addEventListener('click', e => { if (e.target.id === 'overlay') closeModal(); });
+
+function showToast(id, msg){ const t=document.getElementById('toast-'+id); if(!t)return; t.textContent=msg; t.classList.add('show'); clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove('show'),2200); }
+function setStat(id, key, val){ const el=document.getElementById(key+'-stat-'+id); if(el) el.textContent=val; }
+function toggleLike(id){
+  const p=state.find(x=>x.id===id); p.liked=!p.liked; p.likes+=p.liked?1:-1;
+  const btn=document.getElementById('like-btn-'+id);
+  btn.classList.toggle('liked',p.liked); btn.querySelector('svg').outerHTML=p.liked?ICON.heartFill:ICON.heart;
+  document.getElementById('like-count-'+id).textContent=p.likes; setStat(id,'like',p.likes);
+}
+function copyPrompt(id){ const p=state.find(x=>x.id===id); p.copies+=1; setStat(id,'copy',p.copies); navigator.clipboard&&navigator.clipboard.writeText(p.body).catch(()=>{}); showToast(id,'클립보드에 복사됐어요'); }
+function toggleSave(id){
+  const p=state.find(x=>x.id===id); if(!p) return; p.saved=!p.saved;
+  const btn=document.getElementById('save-btn-'+id);
+  if(btn){ btn.classList.toggle('saved',p.saved); btn.innerHTML=(p.saved?ICON.bookmarkFill:ICON.bookmark)+' '+(p.saved?'저장됨':'저장'); }
+  showToast(id, p.saved?'저장했어요':'저장을 취소했어요');
+  renderView();
+}
+function sharePrompt(id){ showToast(id,'[DEMO] 실제 서비스에서는 공유 링크가 복사됩니다.'); }
+function runInClaude(id){
+  const p=state.find(x=>x.id===id); p.runs+=1; setStat(id,'run',p.runs);
+  showToast(id,'[DEMO] 실제 서비스에서는 Claude가 실행됩니다.');
+}
+function submitComment(id){
+  const input=document.getElementById('comment-input-'+id); const text=(input.value||'').trim(); if(!text)return;
+  const p=state.find(x=>x.id===id); p.comments.push({name:ME.name,dept:ME.dept,ava:ME.ava,date:today(),text}); input.value='';
+  const list=document.getElementById('comment-list-'+id); if(list.querySelector('.c-empty'))list.innerHTML='';
+  const div=document.createElement('div'); div.className='comment-item';
+  div.innerHTML=`<div class="comment-head"><div class="c-ava">${ME.ava}</div><span class="c-name">${ME.name}</span><span class="c-dept">${ME.dept}</span><span class="c-date">${today()}</span></div><div class="c-text">${esc(text)}</div>`;
+  list.appendChild(div); document.querySelector('.comments-label span').textContent=p.comments.length; setStat(id,'cmt',p.comments.length);
+}
+
+function editFromModal(id){ document.getElementById('overlay').classList.remove('open'); openEdit(id); }
+function deleteFromModal(id){ if(!confirm('이 프롬프트를 삭제할까요? 되돌릴 수 없어요.'))return; const i=state.findIndex(x=>x.id===id); if(i>-1)state.splice(i,1); document.getElementById('overlay').classList.remove('open'); renderView(); }
+
+function openRegister(){
+  editingId = null;
+  document.getElementById('reg-heading').textContent = '프롬프트 등록';
+  document.getElementById('reg-submit-btn').textContent = '등록하기';
+  document.getElementById('reg-cat').selectedIndex = 0;
+  document.getElementById('reg-title').value = '';
+  document.getElementById('reg-desc').value = '';
+  document.getElementById('reg-body').value = '';
+  document.getElementById('reg-overlay').classList.add('open');
+}
+function openEdit(id){
+  const p = state.find(x=>x.id===id); if(!p) return;
+  editingId = id;
+  document.getElementById('reg-heading').textContent = '프롬프트 수정';
+  document.getElementById('reg-submit-btn').textContent = '수정 완료';
+  const sel = document.getElementById('reg-cat');
+  [...sel.options].forEach((o,i)=>{ if(o.value===p.cat) sel.selectedIndex=i; });
+  document.getElementById('reg-title').value = p.title;
+  document.getElementById('reg-desc').value = (p.desc==='(설명 없음)'?'':p.desc);
+  document.getElementById('reg-body').value = p.body;
+  document.getElementById('reg-overlay').classList.add('open');
+}
+function closeRegister(){ document.getElementById('reg-overlay').classList.remove('open'); editingId=null; }
+document.getElementById('reg-overlay').addEventListener('click', e=>{ if(e.target.id==='reg-overlay')closeRegister(); });
+function submitRegister(){
+  const cat=document.getElementById('reg-cat').value;
+  const title=document.getElementById('reg-title').value.trim();
+  const desc=document.getElementById('reg-desc').value.trim();
+  const body=document.getElementById('reg-body').value.trim();
+  if(!title || !body){ alert('제목과 프롬프트 내용을 입력해주세요.'); return; }
+  if(editingId){
+    const p=state.find(x=>x.id===editingId);
+    p.cat=cat; p.title=title; p.desc=desc||'(설명 없음)'; p.body=body;
+    document.getElementById('reg-overlay').classList.remove('open'); editingId=null;
+    renderView();
+  } else {
+    const newId=Math.max(...state.map(p=>p.id))+1;
+    state.unshift({ id:newId, cat, date:today(), title, desc:desc||'(설명 없음)', body, author:ME.name, dept:ME.dept, ava:ME.ava, likes:0, copies:0, runs:0, liked:false, comments:[] });
+    document.getElementById('reg-overlay').classList.remove('open');
+    document.getElementById('search').value='';
+    switchTab('mine');
+  }
+}
+function deletePrompt(id){ if(!confirm('이 프롬프트를 삭제할까요? 되돌릴 수 없어요.'))return; const i=state.findIndex(x=>x.id===id); if(i>-1)state.splice(i,1); renderView(); }
+
+/* 프롬프트 만들기 */
+let lastTask = '', lastCat = '', generatedBody = '', generatedTitle = '';
+
+function openCreate(){
+  document.getElementById('create-cat').selectedIndex = 0;
+  document.getElementById('create-task').value = '';
+  showCreateStep(1);
+  document.getElementById('create-overlay').classList.add('open');
+}
+function closeCreate(){ document.getElementById('create-overlay').classList.remove('open'); }
+document.getElementById('create-overlay').addEventListener('click', e=>{ if(e.target.id==='create-overlay') closeCreate(); });
+function showCreateStep(n){
+  document.getElementById('create-step1').style.display = n===1?'block':'none';
+  document.getElementById('create-step2').style.display = n===2?'block':'none';
+  document.getElementById('create-step3').style.display = n===3?'block':'none';
+}
+function backToCreateInput(){ showCreateStep(1); }
+
+function roleFor(cat){
+  return ({
+    '리서치':'당신은 증권사 리서치센터의 숙련된 애널리스트입니다.',
+    '고객응대':'당신은 금융투자회사의 고객 응대 커뮤니케이션 전문가입니다.',
+    '업무보고':'당신은 금융투자업 보고서 작성을 돕는 전문 비서입니다.',
+    '기획':'당신은 금융사 전략기획 실무에 능한 기획 전문가입니다.',
+    '코딩':'당신은 금융 시스템 개발에 능숙한 시니어 엔지니어입니다.',
+    '번역/작성':'당신은 금융 분야에 정통한 전문 번역가이자 카피라이터입니다.',
+    '컴플라이언스':'당신은 금융투자업 준법감시(컴플라이언스) 전문가입니다.'
+  }[cat]) || '당신은 한화투자증권 임직원의 업무를 돕는 전문 AI 어시스턴트입니다.';
+}
+
+function buildPrompt(task, cat){
+  const role = roleFor(cat);
+  const t = task.replace(/\s+/g,' ').trim();
+  let fmt = '- 핵심 요약 (3줄 이내)\n- 세부 내용 (필요 시 표로 정리)\n- 유의사항 또는 다음 액션';
+  if (/요약|정리/.test(t)) fmt = '- 한 줄 핵심 요약\n- 항목별 정리 (불릿 또는 표)\n- 결론 및 시사점';
+  if (/번역/.test(t)) fmt = '- 자연스러운 한국어 번역\n- 핵심 용어·수치 요약\n- 의미가 중요한 부분 강조 표시';
+  if (/메일|이메일|메시지|문자|공지/.test(t)) fmt = '- 제목 또는 인사말\n- 본문 (간결하고 정중하게)\n- 맺음말';
+  if (/코드|쿼리|sql|함수|스크립트/i.test(t)) fmt = '- 코드 블록 (주석 포함)\n- 동작 설명\n- 사용 및 주의사항';
+  if (/분석|비교|평가/.test(t)) fmt = '- 분석 기준\n- 항목별 비교 (표)\n- 종합 의견';
+
+  const compliance = /(고객|투자|상품|수익|매수|매도|종목|추천|펀드)/.test(t)
+    ? '\n- 단정적인 수익 보장이나 투자 권유로 해석될 수 있는 표현은 피하고, 사실 중심으로 작성하세요.' : '';
+
+  return role + '\n\n# 목표\n' + t +
+    '\n\n# 입력 정보\n{{여기에 실제 내용을 붙여넣으세요}}' +
+    '\n\n# 작업 지침\n1. 입력한 내용을 분석해 핵심을 정확히 파악하세요.\n2. 목표에 맞는 결과물을 아래 출력 형식에 따라 작성하세요.\n3. 정보가 부족하거나 확인이 필요한 부분은 명확히 표시하세요.' +
+    '\n\n# 출력 형식\n' + fmt +
+    '\n\n# 작성 규칙\n- 한국어로 명확하고 간결하게 작성하세요.\n- 전문 용어는 한 번씩 쉽게 풀어 설명하세요.' + compliance;
+}
+
+function runGenerate(){
+  const task = document.getElementById('create-task').value.trim();
+  const cat = document.getElementById('create-cat').value;
+  if (!task){ alert('하려는 업무를 입력해주세요.'); return; }
+  lastTask = task; lastCat = cat;
+  showCreateStep(2);
+  setTimeout(()=>{
+    generatedBody = buildPrompt(task, cat);
+    generatedTitle = task.length > 22 ? task.slice(0,22) + '…' : task;
+    document.getElementById('gen-output').textContent = generatedBody;
+    showCreateStep(3);
+  }, 950);
+}
+function regenerate(){
+  showCreateStep(2);
+  setTimeout(()=>{
+    generatedBody = buildPrompt(lastTask, lastCat);
+    document.getElementById('gen-output').textContent = generatedBody;
+    showCreateStep(3);
+  }, 800);
+}
+function genToast(msg){ const t=document.getElementById('gen-toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove('show'),2200); }
+function copyGenerated(){ navigator.clipboard&&navigator.clipboard.writeText(generatedBody).catch(()=>{}); genToast('클립보드에 복사됐어요'); }
+function runGenerated(){
+  genToast('[DEMO] 실제 서비스에서는 Claude가 실행됩니다.');
+}
+function useGenerated(){
+  navigator.clipboard&&navigator.clipboard.writeText(generatedBody).catch(()=>{});
+  closeCreate();
+  openRegister();
+  document.getElementById('reg-body').value = generatedBody;
+}
+
+/* ===================== 에이전트 ===================== */
+const agents = [
+  { id:101, cat:"리서치", name:"리서치 어시스턴트", desc:"리포트·공시를 요약하고 종목을 비교해주는 리서치 전용 에이전트예요.",
+    instructions:"당신은 증권사 리서치센터의 애널리스트를 보조하는 AI 에이전트입니다.\n사용자가 리포트·공시·종목명을 주면 핵심 투자포인트, 주요 리스크, 목표주가 근거를 정리하고, 필요하면 종목 비교표를 만듭니다.\n\n규칙:\n- 한국어로 간결하고 명확하게 답합니다.\n- 단정적인 수익 보장이나 투자 권유로 해석될 표현은 피하고 사실 중심으로 작성합니다.\n- 정보가 부족하면 먼저 필요한 자료를 요청합니다.",
+    tasks:["이 리포트 핵심만 요약해줘","A와 B 종목 비교해줘","이 공시가 주가에 미칠 영향은?"],
+    author:"박소영", dept:"리서치센터", ava:"박", date:"06.24", runs:64, likes:38, liked:true,
+    comments:[{name:"강태양",dept:"WM영업",ava:"강",date:"06.24",text:"종목 비교를 한 번에 해줘서 상담 준비가 빨라졌어요."}] },
+  { id:102, cat:"고객응대", name:"고객 응대 도우미", desc:"민원 답변 초안 작성, 상품 쉬운 설명, 답변 톤 교정을 도와주는 에이전트예요.",
+    instructions:"당신은 금융투자회사의 고객 응대를 돕는 AI 에이전트입니다.\n민원 답변 초안 작성, 금융상품 쉬운 설명, 답변 톤 교정을 수행합니다.\n\n규칙:\n- 공손하고 명확한 공식 어조를 유지합니다.\n- 과도한 사과나 법적 책임 인정으로 해석될 표현, 단정적 수익 보장 표현은 피합니다.\n- 고객이 이해하기 쉬운 표현으로 풀어 설명합니다.",
+    tasks:["이 민원 답변 다듬어줘","이 상품 쉽게 설명해줘","정중한 거절 메시지 써줘"],
+    author:"최민준", dept:"컴플라이언스", ava:"최", date:"06.22", runs:52, likes:29, liked:false,
+    comments:[] },
+  { id:103, cat:"업무보고", name:"업무 자동화 비서", desc:"회의록 정리·주간보고 작성·할 일 정리를 자동으로 해주는 업무 비서 에이전트예요.",
+    instructions:"당신은 한화투자증권 임직원의 반복 업무를 돕는 AI 비서입니다.\n회의 메모를 받으면 결정사항과 액션아이템(담당자·기한)을 정리하고, 주간 업무 내역을 받으면 팀장 보고 형식으로 요약합니다.\n\n규칙:\n- 한국어로 간결하게 작성합니다.\n- 표가 필요한 경우 표로 정리합니다.\n- 빠진 정보가 있으면 먼저 확인합니다.",
+    tasks:["이 회의 메모 정리해줘","이번 주 업무 보고서 만들어줘","할 일 우선순위 정해줘"],
+    author:"권다은", dept:"AI Roll-up TFT", ava:"권", date:"06.21", runs:41, likes:22, liked:false,
+    comments:[] }
+];
+const agentState = agents.map(a => ({ ...a, saved: !!a.saved, comments: a.comments.map(c => ({...c})) }));
+agentState.forEach(a => { if (a.id === 102) a.saved = true; });
+
+function agentCardHtml(a, mine){
+  const chips = a.tasks.slice(0,2).map(t=>`<span class="task-chip">${esc(t)}</span>`).join('');
+  const manageHtml = mine ? `
+      <div class="card-manage">
+        <button class="manage-btn" onclick="event.stopPropagation(); openAgentEdit(${a.id})">${ICON.edit} 수정</button>
+        <button class="manage-btn del" onclick="event.stopPropagation(); deleteAgent(${a.id})">${ICON.trash} 삭제</button>
+      </div>` : '';
+  return `
+    <div class="card" onclick="openAgentModal(${a.id})">
+      <div class="card-head"><span class="cat-badge">${a.cat}</span><div class="card-head-right"><button class="card-save ${a.saved?'on':''}" onclick="event.stopPropagation(); toggleAgentSave(${a.id})" title="저장">${a.saved?ICON.bookmarkFill:ICON.bookmark}</button><span class="card-date">${a.date}</span></div></div>
+      <div class="card-title-row"><div class="agent-icon">${ICON.bot}</div><div class="card-title">${esc(a.name)}</div></div>
+      <div class="card-desc">${esc(a.desc)}</div>
+      <div class="task-chips">${chips}</div>
+      <div class="card-foot">
+        <div class="author"><div class="ava">${a.ava}</div><span class="aname">${a.author}</span><span class="dept">${a.dept}</span></div>
+        <div class="mini-acts">
+          <div class="mini-act">${ICON.zap} ${a.runs}</div>
+          <div class="mini-act">${ICON.heart} ${a.likes}</div>
+          <div class="mini-act">${ICON.comment} ${a.comments.length}</div>
+        </div>
+      </div>
+      ${manageHtml}
+    </div>`;
+}
+function toggleAgentSave(id){
+  const a=agentState.find(x=>x.id===id); if(!a) return; a.saved=!a.saved;
+  const btn=document.getElementById('asave-btn-'+id);
+  if(btn){ btn.classList.toggle('saved',a.saved); btn.innerHTML=(a.saved?ICON.bookmarkFill:ICON.bookmark)+' '+(a.saved?'저장됨':'저장'); }
+  aToast(id, a.saved?'저장했어요':'저장을 취소했어요');
+  renderView();
+}
+function deleteAgent(id){ if(!confirm('이 에이전트를 삭제할까요? 되돌릴 수 없어요.'))return; const i=agentState.findIndex(x=>x.id===id); if(i>-1)agentState.splice(i,1); renderView(); }
+
+function openAgentModal(id){
+  const a = agentState.find(x=>x.id===id); if(!a) return;
+  const chips = a.tasks.map(t=>`<span class="task-chip">${esc(t)}</span>`).join('');
+  const commentsHtml = a.comments.length
+    ? a.comments.map(c => `<div class="comment-item"><div class="comment-head"><div class="c-ava">${c.ava}</div><span class="c-name">${c.name}</span><span class="c-dept">${c.dept}</span><span class="c-date">${c.date}</span></div><div class="c-text">${esc(c.text)}</div></div>`).join('')
+    : `<div class="c-empty">아직 댓글이 없어요. 첫 댓글을 남겨보세요.</div>`;
+  const mineButtons = (a.author===ME.name) ? `
+      <button class="act-btn" onclick="editAgentFromModal(${a.id})">${ICON.edit} 수정</button>
+      <button class="act-btn del" onclick="deleteAgentFromModal(${a.id})">${ICON.trash} 삭제</button>` : '';
+  document.getElementById('modal-body').innerHTML = `
+    <span class="modal-cat">${a.cat}</span>
+    <div class="modal-icon-row"><div class="agent-icon">${ICON.bot}</div><div class="modal-title">${esc(a.name)}</div></div>
+    <div class="modal-desc">${esc(a.desc)}</div>
+    <div class="prompt-label">이 에이전트가 하는 일</div>
+    <div class="task-chips">${chips}</div>
+    <button class="link-toggle" id="inst-toggle-${a.id}" onclick="toggleInst(${a.id})">${ICON.doc} 프롬프트 보기</button>
+    <div class="modal-prompt" id="inst-${a.id}" style="display:none">${esc(a.instructions)}</div>
+    <div class="author-row"><div class="ava">${a.ava}</div><span class="aname">${a.author}</span><span class="dept">${a.dept}</span>${a.author===ME.name?'<span class="mine-tag">내 글</span>':''}<span class="date">${a.date}</span></div>
+    <div class="stat-strip">
+      <span>${ICON.zap} 실행 <b id="arun-stat-${a.id}">${a.runs}</b></span>
+      <span>${ICON.heart} 좋아요 <b id="alike-stat-${a.id}">${a.likes}</b></span>
+      <span>${ICON.comment} 댓글 <b id="acmt-stat-${a.id}">${a.comments.length}</b></span>
+    </div>
+    <hr class="divider"/>
+    <div class="prompt-label">실행에 필요한 파일 (선택)</div>
+    <div class="upload-zone" id="uz-${a.id}" onclick="document.getElementById('afile-${a.id}').click()" ondragover="event.preventDefault(); this.classList.add('drag')" ondragleave="this.classList.remove('drag')" ondrop="event.preventDefault(); this.classList.remove('drag'); onAgentFiles(${a.id}, event.dataTransfer.files)">
+      ${ICON.upload}파일을 끌어다 놓거나 클릭해 파일명만 표시하세요<br><small>데모에서는 실제 파일 내용을 읽거나 전송하지 않습니다.</small>
+    </div>
+    <input type="file" id="afile-${a.id}" multiple style="display:none" onchange="onAgentFiles(${a.id}, this.files)" />
+    <div class="file-list" id="filelist-${a.id}"></div>
+    <button class="run-primary" onclick="runAgent(${a.id})">${ICON.play} 실행하기</button>
+    <div class="run-result" id="run-result-${a.id}"></div>
+    <div class="actions">
+      <button class="act-btn ${a.liked?'liked':''}" id="alike-btn-${a.id}" onclick="toggleAgentLike(${a.id})">${a.liked?ICON.heartFill:ICON.heart} <span id="alike-count-${a.id}">${a.likes}</span></button>
+      <button class="act-btn ${a.saved?'saved':''}" id="asave-btn-${a.id}" onclick="toggleAgentSave(${a.id})">${a.saved?ICON.bookmarkFill:ICON.bookmark} ${a.saved?'저장됨':'저장'}</button>
+      <button class="act-btn" onclick="copyAgent(${a.id})">${ICON.copy} 지침 복사</button>
+      <button class="act-btn" onclick="shareAgent(${a.id})">${ICON.share} 공유</button>
+      ${mineButtons}
+      <span class="toast" id="atoast-${a.id}"></span>
+    </div>
+    <div class="comments-label">댓글 <span>${a.comments.length}</span></div>
+    <div id="acomment-list-${a.id}">${commentsHtml}</div>
+    <div class="comment-input-row"><input class="comment-input" id="acomment-input-${a.id}" placeholder="댓글을 입력하세요..." onkeydown="if(event.key==='Enter')submitAgentComment(${a.id})" /><button class="comment-submit" onclick="submitAgentComment(${a.id})">등록</button></div>`;
+  document.getElementById('overlay').classList.add('open');
+}
+
+function toggleInst(id){
+  const el=document.getElementById('inst-'+id); const btn=document.getElementById('inst-toggle-'+id);
+  const show = el.style.display==='none';
+  el.style.display = show ? 'block' : 'none';
+  btn.innerHTML = ICON.doc + (show ? ' 프롬프트 닫기' : ' 프롬프트 보기');
+}
+
+function aToast(id,msg){ const t=document.getElementById('atoast-'+id); if(!t)return; t.textContent=msg; t.classList.add('show'); clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove('show'),2200); }
+function toggleAgentLike(id){
+  const a=agentState.find(x=>x.id===id); a.liked=!a.liked; a.likes+=a.liked?1:-1;
+  const btn=document.getElementById('alike-btn-'+id);
+  btn.classList.toggle('liked',a.liked); btn.querySelector('svg').outerHTML=a.liked?ICON.heartFill:ICON.heart;
+  document.getElementById('alike-count-'+id).textContent=a.likes;
+  const s=document.getElementById('alike-stat-'+id); if(s)s.textContent=a.likes;
+}
+function copyAgent(id){ const a=agentState.find(x=>x.id===id); navigator.clipboard&&navigator.clipboard.writeText(a.instructions).catch(()=>{}); aToast(id,'지침이 복사됐어요'); }
+function shareAgent(id){ aToast(id,'[DEMO] 실제 서비스에서는 공유 링크가 복사됩니다.'); }
+const agentFiles = {};
+function onAgentFiles(id, fileList){
+  agentFiles[id] = agentFiles[id] || [];
+  for (const f of fileList){ agentFiles[id].push(f.name); }
+  renderFileList(id);
+  aToast(id,'[DEMO] 파일명만 표시하며 실제 파일은 처리하지 않습니다.');
+}
+function renderFileList(id){
+  const wrap=document.getElementById('filelist-'+id); if(!wrap) return;
+  const files=agentFiles[id]||[];
+  wrap.innerHTML = files.map((n,i)=>`<div class="file-item">${ICON.doc}<span class="fname">${esc(n)}</span><span class="fx" onclick="removeAgentFile(${id},${i})">${ICON.xmini}</span></div>`).join('');
+}
+function removeAgentFile(id,i){ (agentFiles[id]||[]).splice(i,1); renderFileList(id); }
+
+function sampleResultFor(a){
+  const map={
+    '리서치':'• 핵심 투자포인트 3가지와 주요 리스크 2가지를 요약했어요.\n• 목표주가 산정 근거를 표로 정리했어요.\n• 한 줄 투자의견: 중립.',
+    '고객응대':'• 공식 어조로 다듬은 답변 초안을 작성했어요.\n• 법적 리스크가 될 수 있는 표현 2곳을 순화했어요.',
+    '업무보고':'• [완료/진행/예정]으로 분류한 주간보고 초안을 만들었어요.\n• 핵심 성과와 이슈·리스크를 3줄로 요약했어요.',
+    '기획':'• 논의 요약과 결정사항을 정리했어요.\n• 담당자·기한이 포함된 액션아이템 표를 만들었어요.',
+    '코딩':'• 요청 조건에 맞는 코드를 주석과 함께 작성했어요.\n• 사용 방법과 주의사항을 정리했어요.',
+    '번역/작성':'• 자연스러운 한국어 번역본을 만들었어요.\n• 핵심 수치와 요점을 별도로 요약했어요.',
+    '컴플라이언스':'• 약관 문구를 쉬운 표현으로 바꿨어요.\n• 고객에게 불리할 수 있는 조건을 따로 강조했어요.'
+  };
+  return map[a.cat] || '요청하신 작업을 정리한 결과물을 만들었어요.';
+}
+function showAgentResult(id, files){
+  const a=agentState.find(x=>x.id===id);
+  const box=document.getElementById('run-result-'+id); if(!box) return;
+  const src = files.length ? `선택한 파일명(${files.map(esc).join(', ')})을 입력 조건으로 가정한 Mock 결과예요.\n\n` : '';
+  box.insertAdjacentHTML('beforeend',
+    `<div class="run-out"><b>결과</b>\n${src}${sampleResultFor(a)}</div>`+
+    `<div class="run-note">* 데모용 예시 결과예요. 실제 서비스에서는 사내 백엔드가 이 에이전트의 지침대로 업로드된 파일을 분석해 진짜 결과물을 이 자리에 표시합니다.</div>`);
+}
+function runAgent(id){
+  const a=agentState.find(x=>x.id===id); if(!a) return;
+  a.runs+=1; const s=document.getElementById('arun-stat-'+id); if(s)s.textContent=a.runs;
+  const files=agentFiles[id]||[];
+  const box=document.getElementById('run-result-'+id); if(!box) return;
+  box.style.display='block';
+  const steps=[ files.length?`선택한 파일명 ${files.length}개 확인 중…`:'입력 조건 준비 중…', '에이전트 실행을 시뮬레이션하는 중…', 'Mock 결과 정리 중…' ];
+  box.innerHTML = steps.map((t,i)=>`<div class="run-step" id="rs-${id}-${i}"><span class="rs-ico"><div class="spinner" style="width:14px;height:14px;border-width:2px;"></div></span>${t}</div>`).join('');
+  steps.forEach((t,i)=>{
+    setTimeout(()=>{
+      const el=document.getElementById('rs-'+id+'-'+i);
+      if(el){ el.classList.add('done'); el.querySelector('.rs-ico').innerHTML=ICON.check; }
+      if(i===steps.length-1) showAgentResult(id, files);
+    }, (i+1)*750);
+  });
+}
+function submitAgentComment(id){
+  const input=document.getElementById('acomment-input-'+id); const text=(input.value||'').trim(); if(!text)return;
+  const a=agentState.find(x=>x.id===id); a.comments.push({name:ME.name,dept:ME.dept,ava:ME.ava,date:today(),text}); input.value='';
+  const list=document.getElementById('acomment-list-'+id); if(list.querySelector('.c-empty'))list.innerHTML='';
+  const div=document.createElement('div'); div.className='comment-item';
+  div.innerHTML=`<div class="comment-head"><div class="c-ava">${ME.ava}</div><span class="c-name">${ME.name}</span><span class="c-dept">${ME.dept}</span><span class="c-date">${today()}</span></div><div class="c-text">${esc(text)}</div>`;
+  list.appendChild(div); document.querySelector('.comments-label span').textContent=a.comments.length;
+  const s=document.getElementById('acmt-stat-'+id); if(s)s.textContent=a.comments.length;
+}
+function editAgentFromModal(id){ document.getElementById('overlay').classList.remove('open'); openAgentEdit(id); }
+function deleteAgentFromModal(id){ if(!confirm('이 에이전트를 삭제할까요? 되돌릴 수 없어요.'))return; const i=agentState.findIndex(x=>x.id===id); if(i>-1)agentState.splice(i,1); document.getElementById('overlay').classList.remove('open'); renderView(); }
+
+/* 에이전트 등록 / 수정 */
+let editingAgentId = null;
+function openAgentRegister(){
+  editingAgentId=null;
+  document.getElementById('agent-reg-heading').textContent='에이전트 등록';
+  document.getElementById('agent-reg-submit-btn').textContent='등록하기';
+  document.getElementById('agent-reg-cat').selectedIndex=0;
+  document.getElementById('agent-reg-name').value='';
+  document.getElementById('agent-reg-desc').value='';
+  document.getElementById('agent-reg-inst').value='';
+  document.getElementById('agent-reg-tasks').value='';
+  document.getElementById('agent-reg-overlay').classList.add('open');
+}
+function openAgentEdit(id){
+  const a=agentState.find(x=>x.id===id); if(!a)return;
+  editingAgentId=id;
+  document.getElementById('agent-reg-heading').textContent='에이전트 수정';
+  document.getElementById('agent-reg-submit-btn').textContent='수정 완료';
+  const sel=document.getElementById('agent-reg-cat'); [...sel.options].forEach((o,i)=>{ if(o.value===a.cat) sel.selectedIndex=i; });
+  document.getElementById('agent-reg-name').value=a.name;
+  document.getElementById('agent-reg-desc').value=(a.desc==='(설명 없음)'?'':a.desc);
+  document.getElementById('agent-reg-inst').value=a.instructions;
+  document.getElementById('agent-reg-tasks').value=a.tasks.join('\n');
+  document.getElementById('agent-reg-overlay').classList.add('open');
+}
+function closeAgentRegister(){ document.getElementById('agent-reg-overlay').classList.remove('open'); editingAgentId=null; }
+document.getElementById('agent-reg-overlay').addEventListener('click', e=>{ if(e.target.id==='agent-reg-overlay')closeAgentRegister(); });
+function submitAgentRegister(){
+  const cat=document.getElementById('agent-reg-cat').value;
+  const name=document.getElementById('agent-reg-name').value.trim();
+  const desc=document.getElementById('agent-reg-desc').value.trim();
+  const inst=document.getElementById('agent-reg-inst').value.trim();
+  const tasks=document.getElementById('agent-reg-tasks').value.split('\n').map(s=>s.trim()).filter(Boolean);
+  if(!name || !inst){ alert('에이전트 이름과 지침을 입력해주세요.'); return; }
+  if(editingAgentId){
+    const a=agentState.find(x=>x.id===editingAgentId);
+    a.cat=cat; a.name=name; a.desc=desc||'(설명 없음)'; a.instructions=inst; a.tasks=tasks;
+    document.getElementById('agent-reg-overlay').classList.remove('open'); editingAgentId=null;
+    renderView();
+  } else {
+    const newId=Math.max(100,...agentState.map(a=>a.id))+1;
+    agentState.unshift({ id:newId, cat, name, desc:desc||'(설명 없음)', instructions:inst, tasks, author:ME.name, dept:ME.dept, ava:ME.ava, date:today(), runs:0, likes:0, liked:false, comments:[] });
+    document.getElementById('agent-reg-overlay').classList.remove('open');
+    document.getElementById('search').value='';
+    switchTab('agents');
+  }
+}
+
+/* 에이전트 만들기 (생성) */
+let lastAgentTask='', lastAgentCat='', genAgent=null;
+function openAgentCreate(){
+  document.getElementById('agent-create-cat').selectedIndex=0;
+  document.getElementById('agent-create-task').value='';
+  showAgentStep(1);
+  document.getElementById('agent-create-overlay').classList.add('open');
+}
+function closeAgentCreate(){ document.getElementById('agent-create-overlay').classList.remove('open'); }
+document.getElementById('agent-create-overlay').addEventListener('click', e=>{ if(e.target.id==='agent-create-overlay')closeAgentCreate(); });
+function showAgentStep(n){
+  document.getElementById('agent-create-step1').style.display=n===1?'block':'none';
+  document.getElementById('agent-create-step2').style.display=n===2?'block':'none';
+  document.getElementById('agent-create-step3').style.display=n===3?'block':'none';
+}
+function backToAgentInput(){ showAgentStep(1); }
+function buildAgent(task, cat){
+  const role=roleFor(cat);
+  const t=task.replace(/\s+/g,' ').trim();
+  const nameMap={ '리서치':'리서치 어시스턴트','고객응대':'고객 응대 도우미','업무보고':'업무 보고 비서','기획':'기획 도우미','코딩':'개발 도우미','번역/작성':'번역·작성 도우미','컴플라이언스':'준법 점검 도우미' };
+  const name = nameMap[cat] || '맞춤 업무 에이전트';
+  const compliance = /(고객|투자|상품|수익|매수|매도|종목|추천|펀드)/.test(t)
+    ? '\n- 단정적인 수익 보장이나 투자 권유로 해석될 표현은 피하고 사실 중심으로 작성합니다.' : '';
+  const instructions = role + '\n사용자가 맡긴 다음 업무를 수행하는 에이전트로 동작하세요: ' + t +
+    '\n\n규칙:\n- 한국어로 간결하고 명확하게 응답합니다.\n- 정보가 부족하면 먼저 필요한 입력을 요청합니다.\n- 결과는 보기 좋게 (필요 시 표·목록으로) 정리합니다.' + compliance;
+  const short = t.length>16 ? t.slice(0,16)+'…' : t;
+  const tasks = [ short, '결과를 더 간단히 정리해줘', '다른 예시로 한 번 더 해줘' ];
+  return { name, instructions, tasks };
+}
+function renderGenAgent(){
+  document.getElementById('agent-gen-name').textContent = genAgent.name;
+  document.getElementById('agent-gen-inst').textContent = genAgent.instructions;
+  document.getElementById('agent-gen-tasks').innerHTML = genAgent.tasks.map(t=>`<span class="task-chip">${esc(t)}</span>`).join('');
+}
+function runAgentGenerate(){
+  const task=document.getElementById('agent-create-task').value.trim();
+  const cat=document.getElementById('agent-create-cat').value;
+  if(!task){ alert('어떤 일을 하는 에이전트인지 입력해주세요.'); return; }
+  lastAgentTask=task; lastAgentCat=cat;
+  showAgentStep(2);
+  setTimeout(()=>{ genAgent=buildAgent(task,cat); renderGenAgent(); showAgentStep(3); }, 950);
+}
+function regenerateAgent(){ showAgentStep(2); setTimeout(()=>{ genAgent=buildAgent(lastAgentTask,lastAgentCat); renderGenAgent(); showAgentStep(3); }, 800); }
+function agentGenToast(msg){ const t=document.getElementById('agent-gen-toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove('show'),2200); }
+function runAgentGenerated(){
+  if(!genAgent)return;
+  agentGenToast('[DEMO] 실제 서비스에서는 Claude가 실행됩니다.');
+}
+function useAgentGenerated(){
+  if(!genAgent)return;
+  navigator.clipboard&&navigator.clipboard.writeText(genAgent.instructions).catch(()=>{});
+  closeAgentCreate();
+  openAgentRegister();
+  document.getElementById('agent-reg-inst').value = genAgent.instructions;
+  document.getElementById('agent-reg-tasks').value = genAgent.tasks.join('\n');
+}
+
+document.addEventListener('keydown', e=>{ if(e.key==='Escape'){ closeModal(); closeRegister(); closeCreate(); closeAgentRegister(); closeAgentCreate(); } });
+renderSubtabs();
+renderView();
+</script>
+</body>
+</html>
