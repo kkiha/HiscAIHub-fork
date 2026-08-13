@@ -16,6 +16,10 @@ const USER_EMAILS = [
   "haeun.jung@hanwha.com", // 정하은
   "jiwoo.han@hanwha.com", // 한지우
   "dohyun.lee@hanwha.com", // 이도현
+  "yujin.kim@hanwha.com", // 김유진
+  "sehun.oh@hanwha.com", // 오세훈
+  "jihun.bae@hanwha.com", // 배지훈
+  "yerin.song@hanwha.com", // 송예린
 ];
 
 // UsageLog는 백엔드 Claude API 호출(=비용 발생)만 기록한다. "실행"(prompt_run/agent_run)은
