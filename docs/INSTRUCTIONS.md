@@ -95,7 +95,7 @@ async function collectContents(range) {
 | `Agent` | `likeCount`, `runCount`, `category`, `authorId`, `exampleTasks`. **`copyCount` 없음** |
 | `Like` / `Save` | Prompt/Agent nullable dual-FK 패턴 |
 | `AuditLog` | `userId`, `action`, `targetType`, `targetId`, `targetLabel`, `createdAt` |
-| `UsageLog` | Claude API 호출 로그. `feature`는 `prompt_generate` / `agent_generate`만 존재 |
+| `UsageLog` | Claude API 호출 로그. 실제 런타임은 `prompt_generate` / `agent_generate`만 기록. 단, 기본 시드에는 `agent_run` 표본도 포함되어 있으며 `feature` 필드 자체는 enum이 아닌 `String` |
 | `Category` | `name`, `order` |
 
 ### 이벤트 수집 현황
@@ -107,7 +107,7 @@ async function collectContents(range) {
 | 프롬프트 복사 | `POST /api/prompts/[id]/copy` → `copyCount`만 증가. AuditLog 미기록 |
 | 에이전트 복사 | **API 호출 없음.** `AgentBoard.tsx`의 `copyInstructions()`가 클립보드 복사만 수행 |
 | 조회 | 수집 없음. `viewCount` 필드 없음 |
-| 방문 | `getCurrentUser()`가 매 요청 `lastActiveAt` 갱신 |
+| 방문 | 인증된 사용자 화면·임직원 API에서 `getCurrentUser()`가 호출될 때 기존 사용자의 `lastActiveAt` 갱신. 모든 HTTP 요청에서 호출되는 것은 아니며, 최초 사용자 생성 시에는 `lastActiveAt`을 설정하지 않음 |
 
 ### 집계 로직 (`src/lib/admin.ts`)
 
@@ -116,10 +116,11 @@ async function collectContents(range) {
 - `SCORE_WEIGHTS` — `runs` / `registrations` / `likes` 가중치
 - `getLeaderboardStats(days)` — 기간 파라미터를 받아 집계
 
-### 미사용 상태로 정의만 되어 있는 것
+### 실제 런타임에서 기록되지 않는 AuditAction
 
-- `AuditAction.prompt_copy` — enum에 존재하고 `admin.ts`에 라벨도 있으나 어디서도 기록하지 않음
-- `AuditAction.prompt_create` / `agent_create` 등 — 마찬가지로 미기록
+- 실제 API 런타임에서 AuditLog에 기록하는 액션은 `prompt_run` / `agent_run`뿐
+- `prompt_copy`, `prompt_create`, `prompt_update`, `prompt_delete`, `prompt_generate`, `agent_create`, `agent_update`, `agent_delete`, `agent_generate`는 실제 사용자 행동으로 기록되지 않음
+- 단, `prisma/seed.ts`와 `prisma/seed-usage-mock.ts`는 관리자 화면용 표본으로 `prompt_generate`, `agent_generate`, `agent_create`, `prompt_copy` 등의 AuditLog를 생성함. 따라서 이 값들은 "정의만 존재"하는 것이 아니라 **시드 데이터에만 존재할 수 있음**
 
 ---
 
