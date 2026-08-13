@@ -818,20 +818,21 @@ function monthKey(date: Date): string {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
 }
 
-export async function getMonthlyTrend(months: number, dept?: string): Promise<MonthlyTrendRow[]> {
+export async function getMonthlyTrend(months: number, dept?: string, periodStart?: Date): Promise<MonthlyTrendRow[]> {
   requirePositiveInteger(months, "집계 개월 수");
   const filterDept = normalizeDeptFilter(dept);
   const now = new Date();
-  const since = new Date(now.getFullYear(), now.getMonth() - (months - 1), 1);
+  const bucketStart = new Date(now.getFullYear(), now.getMonth() - (months - 1), 1);
+  const dataStart = periodStart && periodStart > bucketStart ? periodStart : bucketStart;
   const [contents, runLogs] = await Promise.all([
     collectContents(),
-    collectRunLogs(since),
+    collectRunLogs(dataStart),
   ]);
   const contentsByKey = indexContents(contents);
   const buckets = new Map<string, { label: string; newRegistrations: number; adoptions: number; users: Set<string> }>();
 
   for (let offset = 0; offset < months; offset += 1) {
-    const date = new Date(since.getFullYear(), since.getMonth() + offset, 1);
+    const date = new Date(bucketStart.getFullYear(), bucketStart.getMonth() + offset, 1);
     buckets.set(monthKey(date), {
       label: `${date.getFullYear()}년 ${date.getMonth() + 1}월`,
       newRegistrations: 0,
@@ -841,7 +842,7 @@ export async function getMonthlyTrend(months: number, dept?: string): Promise<Mo
   }
 
   for (const content of contents) {
-    if (content.createdAt < since || (filterDept && content.authorDept !== filterDept)) continue;
+    if (content.createdAt < dataStart || (filterDept && content.authorDept !== filterDept)) continue;
     const bucket = buckets.get(monthKey(content.createdAt));
     if (bucket) bucket.newRegistrations += 1;
   }
@@ -862,6 +863,102 @@ export async function getMonthlyTrend(months: number, dept?: string): Promise<Mo
     adoptions: value.adoptions,
     activeUsers: value.users.size,
   }));
+}
+
+export async function getMonthlyTrendForDays(days: number, dept?: string): Promise<MonthlyTrendRow[]> {
+  requirePositiveInteger(days, "집계 기간");
+  const periodStart = daysAgo(days);
+  const now = new Date();
+  const months = (now.getFullYear() - periodStart.getFullYear()) * 12 + now.getMonth() - periodStart.getMonth() + 1;
+  return getMonthlyTrend(months, dept, periodStart);
+}
+
+export type PopularContentRow = {
+  contentId: string;
+  contentType: ContentKind;
+  title: string;
+  category: string;
+  runs: number;
+};
+
+export async function getPopularContentStats(days: number, dept?: string, limit = 5): Promise<PopularContentRow[]> {
+  requirePositiveInteger(days, "집계 기간");
+  requirePositiveInteger(limit, "인기 콘텐츠 개수");
+  const filterDept = normalizeDeptFilter(dept);
+  const [contents, runLogs] = await Promise.all([
+    collectContents(),
+    collectRunLogs(daysAgo(days)),
+  ]);
+  const contentsByKey = indexContents(contents);
+  const runsByContent = new Map<string, number>();
+
+  for (const log of runLogs) {
+    if (filterDept && log.user.dept !== filterDept) continue;
+    const content = findRunContent(log, contentsByKey);
+    if (!content) continue;
+    const key = contentKey(content.kind, content.id);
+    runsByContent.set(key, (runsByContent.get(key) ?? 0) + 1);
+  }
+
+  return contents
+    .map((content): PopularContentRow => ({
+      contentId: content.id,
+      contentType: content.kind,
+      title: content.title,
+      category: content.category,
+      runs: runsByContent.get(contentKey(content.kind, content.id)) ?? 0,
+    }))
+    .filter((content) => content.runs > 0)
+    .sort((a, b) => b.runs - a.runs || a.title.localeCompare(b.title, "ko"))
+    .slice(0, limit);
+}
+
+export async function getDashboardDepartments(): Promise<string[]> {
+  const [users, headcounts] = await Promise.all([
+    db.user.findMany({ distinct: ["dept"], select: { dept: true } }),
+    getDeptHeadcounts(),
+  ]);
+  return Array.from(new Set([...users.map((user) => user.dept), ...Object.keys(headcounts)]))
+    .filter(Boolean)
+    .sort((a, b) => a.localeCompare(b, "ko"));
+}
+
+export type AiSubscriptionRow = {
+  dept: string;
+  tool: string;
+  accounts: number;
+  monthlyCostKrw: number;
+};
+
+export type AiSubscriptionStats = {
+  referenceMonth: string | null;
+  rows: AiSubscriptionRow[];
+};
+
+export async function getAiSubscriptionStats(dept?: string): Promise<AiSubscriptionStats> {
+  const filterDept = normalizeDeptFilter(dept);
+  const [monthSetting, rowsSetting] = await Promise.all([
+    db.setting.findUnique({ where: { key: "ai_subscription_reference_month" } }),
+    db.setting.findUnique({ where: { key: "ai_subscription_by_dept" } }),
+  ]);
+  const referenceMonth = typeof monthSetting?.value === "string" ? monthSetting.value : null;
+  const rawRows: unknown[] = Array.isArray(rowsSetting?.value) ? rowsSetting.value : [];
+  const rows = rawRows
+    .filter((row): row is Record<string, unknown> => Boolean(row) && typeof row === "object" && !Array.isArray(row))
+    .map((row): AiSubscriptionRow | null => {
+      const rowDept = typeof row.dept === "string" ? row.dept.trim() : "";
+      const tool = typeof row.tool === "string" ? row.tool.trim() : "";
+      const accounts = typeof row.accounts === "number" && Number.isInteger(row.accounts) && row.accounts >= 0 ? row.accounts : null;
+      const monthlyCostKrw = typeof row.monthlyCostKrw === "number" && row.monthlyCostKrw >= 0 ? row.monthlyCostKrw : null;
+      return rowDept && tool && accounts !== null && monthlyCostKrw !== null
+        ? { dept: rowDept, tool, accounts, monthlyCostKrw }
+        : null;
+    })
+    .filter((row): row is AiSubscriptionRow => row !== null)
+    .filter((row) => !filterDept || row.dept === filterDept)
+    .sort((a, b) => a.dept.localeCompare(b.dept, "ko") || a.tool.localeCompare(b.tool, "ko"));
+
+  return { referenceMonth, rows };
 }
 
 // ---------- 감사 로그 ----------

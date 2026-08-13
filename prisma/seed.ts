@@ -370,6 +370,23 @@ async function main() {
     create: { key: "dept_headcount", value: { "AI Roll-up TFT": 8, "리서치센터": 24, "컴플라이언스": 14, "WM영업": 30, "해외주식": 12 } },
   });
   await db.setting.upsert({
+    where: { key: "ai_subscription_reference_month" },
+    update: { value: "2026-08" },
+    create: { key: "ai_subscription_reference_month", value: "2026-08" },
+  });
+  const subscriptionRows = [
+    { dept: "리서치센터", tool: "Claude", accounts: 8, monthlyCostKrw: 240000 },
+    { dept: "WM영업", tool: "Claude", accounts: 6, monthlyCostKrw: 180000 },
+    { dept: "컴플라이언스", tool: "Microsoft Copilot", accounts: 4, monthlyCostKrw: 120000 },
+    { dept: "해외주식", tool: "ChatGPT", accounts: 5, monthlyCostKrw: 150000 },
+    { dept: "전략기획", tool: "Claude", accounts: 3, monthlyCostKrw: 90000 },
+  ];
+  await db.setting.upsert({
+    where: { key: "ai_subscription_by_dept" },
+    update: { value: subscriptionRows },
+    create: { key: "ai_subscription_by_dept", value: subscriptionRows },
+  });
+  await db.setting.upsert({
     where: { key: "registration_warning" },
     update: { value: "실제 고객정보, 내부 비공개 수치, 계좌·주민번호 등 민감정보는 절대 입력하지 마세요." },
     create: { key: "registration_warning", value: "실제 고객정보, 내부 비공개 수치, 계좌·주민번호 등 민감정보는 절대 입력하지 마세요." },

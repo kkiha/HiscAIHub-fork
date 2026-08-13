@@ -43,11 +43,11 @@ const TABS: Record<Mode, Tab[]> = {
 
 const HEADERS: Record<string, { h: string; p: string }> = {
   home: { h: "전체 프롬프트", p: "임직원이 공유한 프롬프트를 둘러보세요." },
-  popular: { h: "인기 프롬프트", p: "이번 주 가장 주목받은 프롬프트 3가지예요." },
+  popular: { h: "인기 프롬프트", p: "누적 실행·복사·댓글 반응이 높은 프롬프트 3가지예요." },
   saved: { h: "저장한 프롬프트", p: "저장 버튼을 누른 프롬프트만 모여요. 저장 내역은 나만 볼 수 있어요." },
   mine: { h: "내 프롬프트", p: "내가 작성한 프롬프트예요. 수정하거나 삭제할 수 있어요." },
   "a-home": { h: "에이전트", p: "임직원이 만들어 공유한 에이전트를 둘러보세요. 클릭하면 바로 실행할 수 있어요." },
-  "a-popular": { h: "인기 에이전트", p: "이번 주 가장 많이 쓰인 에이전트예요." },
+  "a-popular": { h: "인기 에이전트", p: "누적 실행 횟수가 많은 에이전트예요." },
   "a-saved": { h: "저장한 에이전트", p: "저장 버튼을 누른 에이전트만 모여요. 저장 내역은 나만 볼 수 있어요." },
   "a-mine": { h: "내 에이전트", p: "내가 만든 에이전트예요. 수정하거나 삭제할 수 있어요." },
   activity: { h: "활동", p: "내 콘텐츠에 달린 댓글 알림을 모아봤어요." },
@@ -109,6 +109,7 @@ export default function AppShell({
           </button>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <a className="tnav dashboard-link" href="/dashboard"><GridIcon size={14} /> 대시보드</a>
           <div className="user-pill" onClick={() => setTab("activity")}>
             <span className="dot">{initial}</span> {displayName} · {user.dept}
           </div>

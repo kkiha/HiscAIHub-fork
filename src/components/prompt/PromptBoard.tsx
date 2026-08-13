@@ -21,9 +21,9 @@ import {
 type Award = { prompt: PromptDTO; kind: "run" | "hot" | "useful" };
 
 const AWARD_META: Record<Award["kind"], { cls: string; icon: React.ReactNode; text: string }> = {
-  run: { cls: "run", icon: <ZapIcon size={13} />, text: "최근 가장 많이 실행된 프롬프트예요" },
-  hot: { cls: "hot", icon: <FlameIcon size={13} />, text: "Hot · 이번 주 댓글이 가장 많아요" },
-  useful: { cls: "useful", icon: <StarIcon size={13} />, text: "최근 가장 많이 복사된 프롬프트예요" },
+  run: { cls: "run", icon: <ZapIcon size={13} />, text: "누적 실행이 가장 많은 프롬프트예요" },
+  hot: { cls: "hot", icon: <FlameIcon size={13} />, text: "Hot · 누적 댓글이 가장 많아요" },
+  useful: { cls: "useful", icon: <StarIcon size={13} />, text: "누적 복사가 가장 많은 프롬프트예요" },
 };
 
 function pickAwards(list: PromptDTO[]): Award[] {
