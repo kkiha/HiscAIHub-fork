@@ -11,6 +11,10 @@ function formatRate(value: number | null): string {
   return value === null ? "-" : `${value}%`;
 }
 
+function formatRunsPerHeadcount(runs: number, headcount: number | null): string {
+  return headcount === null || headcount < 1 ? "-" : `${(runs / headcount).toFixed(1)}회`;
+}
+
 function Empty({ children }: { children: React.ReactNode }) {
   return <div className="dashboard-empty">{children}</div>;
 }
@@ -22,6 +26,15 @@ function KpiDelta({ value, detail }: { value: number | null; detail?: string }) 
   return <p className={`kpi-delta ${direction}`}>직전 동일 기간 대비 {marker} {Math.abs(value)}%{detail ? ` · ${detail}` : ""}</p>;
 }
 
+function RegistrationDelta({ registrations, delta }: { registrations: number; delta: number | null }) {
+  if (delta === null) {
+    return <p className="kpi-delta neutral">기간 신규 등록 {registrations}건 (직전 대비 -)</p>;
+  }
+  const direction = delta > 0 ? "up" : delta < 0 ? "down" : "neutral";
+  const marker = delta > 0 ? "↑" : delta < 0 ? "↓" : "→";
+  return <p className={`kpi-delta ${direction}`}>기간 신규 등록 {registrations}건 (직전 대비 {marker} {Math.abs(delta)}%)</p>;
+}
+
 function TrendChart({ rows }: { rows: PublicDashboardData["trend"] }) {
   const width = 960;
   const height = 300;
@@ -31,6 +44,9 @@ function TrendChart({ rows }: { rows: PublicDashboardData["trend"] }) {
   const maxValue = Math.max(1, ...rows.flatMap((row) => [row.newRegistrations, row.adoptions, row.activeUsers]));
   const x = (index: number) => padding.left + (rows.length <= 1 ? plotWidth / 2 : (index / (rows.length - 1)) * plotWidth);
   const y = (value: number) => padding.top + plotHeight - (value / maxValue) * plotHeight;
+  const now = new Date();
+  const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  const lastMonthInProgress = rows.at(-1)?.month === currentMonth;
   const series = [
     { key: "newRegistrations" as const, label: "신규 등록", color: "#D96A28" },
     { key: "adoptions" as const, label: "가져가기", color: "#3F6C79" },
@@ -53,14 +69,33 @@ function TrendChart({ rows }: { rows: PublicDashboardData["trend"] }) {
             </g>
           );
         })}
-        {rows.map((row, index) => (
-          <text key={row.month} x={x(index)} y={height - 17} textAnchor="middle" className="chart-axis-label month">{row.label.replace(/^\d{4}년 /, "")}</text>
-        ))}
+        {rows.map((row, index) => {
+          const inProgress = lastMonthInProgress && index === rows.length - 1;
+          return (
+            <text key={row.month} x={x(index)} y={height - 17} textAnchor={inProgress ? "end" : "middle"} className={`chart-axis-label month${inProgress ? " in-progress" : ""}`}>
+              {row.label.replace(/^\d{4}년 /, "")}{inProgress ? " (진행 중)" : ""}
+            </text>
+          );
+        })}
         {series.map((item) => {
-          const points = rows.map((row, index) => `${x(index)},${y(row[item.key])}`).join(" ");
+          const completedRows = lastMonthInProgress ? rows.slice(0, -1) : rows;
+          const completedPoints = completedRows.map((row, index) => `${x(index)},${y(row[item.key])}`).join(" ");
+          const lastIndex = rows.length - 1;
           return (
             <g key={item.key}>
-              <polyline points={points} fill="none" stroke={item.color} strokeWidth="3" strokeLinejoin="round" strokeLinecap="round" />
+              <polyline points={completedPoints} fill="none" stroke={item.color} strokeWidth="3" strokeLinejoin="round" strokeLinecap="round" />
+              {lastMonthInProgress && rows.length > 1 ? (
+                <line
+                  x1={x(lastIndex - 1)}
+                  y1={y(rows[lastIndex - 1][item.key])}
+                  x2={x(lastIndex)}
+                  y2={y(rows[lastIndex][item.key])}
+                  stroke={item.color}
+                  strokeWidth="3"
+                  strokeDasharray="8 7"
+                  strokeLinecap="round"
+                />
+              ) : null}
               {rows.map((row, index) => (
                 <circle key={row.month} cx={x(index)} cy={y(row[item.key])} r="4" fill="var(--surface)" stroke={item.color} strokeWidth="2.5">
                   <title>{`${row.label} ${item.label}: ${row[item.key]}`}</title>
@@ -185,7 +220,7 @@ export default function PublicDashboard() {
               <div className="overview-grid">
                 <article>
                   <span>전체 등록 콘텐츠 수</span><strong>{data.overview.kpis.totalContents.value}<small>건</small></strong>
-                  <KpiDelta value={data.overview.kpis.totalContents.delta} detail="기간 신규 등록 기준" />
+                  <RegistrationDelta registrations={data.overview.totals.registrations} delta={data.overview.kpis.totalContents.delta} />
                 </article>
                 <article>
                   <span>활성 사용자 수</span><strong>{data.overview.kpis.activeUsers.value}<small>명</small></strong>
@@ -213,30 +248,35 @@ export default function PublicDashboard() {
             </section>
 
             <section className="dashboard-section" id="diffusion">
-              <div className="section-heading"><span>04</span><div><h2>부서 확산</h2><p>{data.filterDept ? "우리 부서가 등록한 콘텐츠 기준" : "전사 각 부서가 등록한 콘텐츠 기준"}</p></div></div>
+              <div className="section-heading"><span>04</span><div><h2>부서 확산</h2><p>부서별 활용 규모와 콘텐츠 확산 흐름을 함께 확인합니다.</p></div></div>
               <div className="dashboard-columns">
                 <div className="dashboard-panel">
                   <h3>부서별 활용 현황</h3>
                   {data.overview.departments.length === 0 ? <Empty>표시할 부서 활동이 없습니다.</Empty> : (
-                    <div className="dashboard-table-wrap compact">
-                      <table>
-                        <thead><tr><th>부서</th><th>등록 인원</th><th>활성 사용자</th><th>활성률</th><th>가져가기</th><th>등록</th></tr></thead>
-                        <tbody>{data.overview.departments.map((row) => (
-                          <tr key={row.dept}>
-                            <td>{row.dept}{row.grouped ? <small className="grouped-label">10명 미만 부서 합산</small> : null}</td>
-                            <td>{row.headcount === null ? "-" : `${row.headcount}명`}</td>
-                            <td>{row.activeUsers}명</td><td>{formatRate(row.activeUserRate)}</td><td>{row.runs}회</td><td>{row.registrations}건</td>
-                          </tr>
-                        ))}</tbody>
-                      </table>
-                    </div>
+                    <>
+                      <div className="dashboard-table-wrap compact">
+                        <table>
+                          <thead><tr><th>부서</th><th>등록 인원</th><th>활성 사용자</th><th>활성률</th><th>가져가기</th><th>1인당 가져가기</th><th>등록</th></tr></thead>
+                          <tbody>{data.overview.departments.map((row) => (
+                            <tr key={row.dept}>
+                              <td>{row.dept}{row.grouped ? <small className="grouped-label">10명 미만 부서 합산</small> : null}</td>
+                              <td>{row.headcount === null ? "-" : `${row.headcount}명`}</td>
+                              <td>{row.activeUsers}명</td><td>{formatRate(row.activeUserRate)}</td><td>{row.runs}회</td>
+                              <td>{formatRunsPerHeadcount(row.runs, row.headcount)}</td><td>{row.registrations}건</td>
+                            </tr>
+                          ))}</tbody>
+                        </table>
+                      </div>
+                      <p className="dashboard-footnote">* 등록은 건수가 적어 인원 대비 비율을 표시하지 않습니다.</p>
+                    </>
                   )}
                   {data.overview.departments.some((row) => row.activeUserRate === null) ? (
-                    <div className="dashboard-notice compact-notice">인원수가 등록되지 않은 부서는 활성률을 표시하지 않습니다.</div>
+                    <div className="dashboard-notice compact-notice">인원수가 등록되지 않은 부서는 활성률과 1인당 가져가기를 표시하지 않습니다.</div>
                   ) : null}
                 </div>
                 <div className="dashboard-panel">
                   <h3>타 부서 활용</h3>
+                  <p className="panel-description">{data.filterDept ? "우리 부서가 등록한 콘텐츠 기준" : "각 부서가 등록한 콘텐츠 기준"}</p>
                   {data.diffusion.departments.length === 0 ? <Empty>부서 간 활용 기록이 없습니다.</Empty> : (
                     <div className="diffusion-list">
                       {data.diffusion.departments.map((row) => (
@@ -248,6 +288,7 @@ export default function PublicDashboard() {
               </div>
               <div className="dashboard-panel content-diffusion">
                 <h3>부서 간 확산 콘텐츠</h3>
+                <p className="panel-description">{data.filterDept ? "우리 부서가 등록한 콘텐츠 기준" : "각 부서가 등록한 콘텐츠 기준"}</p>
                 {data.diffusion.contents.filter((row) => row.crossDeptRuns > 0).length === 0 ? <Empty>이 기간에는 부서 간 실행 기록이 없습니다.</Empty> : (
                   <div className="dashboard-table-wrap compact">
                     <table>
