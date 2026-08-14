@@ -13,6 +13,12 @@ export type PublicDashboardData = {
   filterDept: string | null;
   departmentOptions: string[];
   overview: {
+    kpis: {
+      totalContents: { value: number; delta: number | null };
+      activeUsers: { value: number; delta: number | null };
+      participatingDepartments: { value: number; delta: number | null };
+      totalRuns: { value: number; delta: number | null };
+    };
     totals: Omit<PublicDeptUsageRow, "dept" | "grouped">;
     departments: PublicDeptUsageRow[];
   };
@@ -45,15 +51,6 @@ export type PublicDashboardData = {
       importedRuns: number;
     }>;
   };
-  departmentLeaderboard: Array<{
-    dept: string;
-    runs: number;
-    registrations: number;
-    activeUsers: number;
-    avgRunsPerUser: number;
-    score: number;
-    delta: number | null;
-  }>;
   popularContent: Array<{
     contentId: string;
     contentType: "prompt" | "agent";

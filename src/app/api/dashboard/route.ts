@@ -7,9 +7,9 @@ import {
   getDeptHeadcounts,
   getDeptUsageStats,
   getDiffusionStats,
-  getLeaderboardStats,
   getMonthlyTrend,
   getPopularContentStats,
+  getPublicOverviewKpis,
 } from "@/lib/admin";
 import type { PublicDashboardData } from "@/lib/public-dashboard-types";
 
@@ -36,12 +36,12 @@ export async function GET(req: Request) {
   }
 
   const dept = requestedDept ?? undefined;
-  const [overview, trend, categories, diffusion, leaderboard, popularContent, subscriptions] = await Promise.all([
+  const [overview, overviewKpis, trend, categories, diffusion, popularContent, subscriptions] = await Promise.all([
     getDeptUsageStats(days, dept),
+    getPublicOverviewKpis(days, dept),
     getMonthlyTrend(6, dept),
     getCategoryStats(days, dept),
     getDiffusionStats(days, dept),
-    getLeaderboardStats(days),
     getPopularContentStats(days, dept),
     getAiSubscriptionStats(dept),
   ]);
@@ -49,9 +49,6 @@ export async function GET(req: Request) {
   // 공개 응답에는 부서 집계만 선별한다. 개인 랭킹과 파워 유저 데이터는 포함하지 않는다.
   const visibleDepartments = new Set(
     overview.departments.filter((row) => !row.grouped).map((row) => row.dept),
-  );
-  const departmentLeaderboard = leaderboard.depts.filter((row) =>
-    requestedDept ? row.dept === requestedDept : visibleDepartments.has(row.dept),
   );
   const publicDiffusionDepartments = diffusion.departments.filter((row) =>
     requestedDept ? row.dept === requestedDept : visibleDepartments.has(row.dept),
@@ -64,11 +61,10 @@ export async function GET(req: Request) {
     periodDays: days,
     filterDept: requestedDept,
     departmentOptions,
-    overview: { totals: overview.totals, departments: overview.departments },
+    overview: { kpis: overviewKpis, totals: overview.totals, departments: overview.departments },
     trend,
     categories,
     diffusion: { contents: publicDiffusionContents, departments: publicDiffusionDepartments },
-    departmentLeaderboard,
     popularContent,
     subscriptions,
   } satisfies PublicDashboardData;

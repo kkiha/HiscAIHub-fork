@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { logout } from "@/app/actions/auth";
 import { BulbIcon, GridIcon } from "@/components/icons";
 import type { PublicDashboardData } from "@/lib/public-dashboard-types";
@@ -13,6 +13,84 @@ function formatRate(value: number | null): string {
 
 function Empty({ children }: { children: React.ReactNode }) {
   return <div className="dashboard-empty">{children}</div>;
+}
+
+function KpiDelta({ value, detail }: { value: number | null; detail?: string }) {
+  if (value === null) return <p className="kpi-delta neutral">직전 동일 기간 대비 -{detail ? ` · ${detail}` : ""}</p>;
+  const direction = value > 0 ? "up" : value < 0 ? "down" : "neutral";
+  const marker = value > 0 ? "↑" : value < 0 ? "↓" : "→";
+  return <p className={`kpi-delta ${direction}`}>직전 동일 기간 대비 {marker} {Math.abs(value)}%{detail ? ` · ${detail}` : ""}</p>;
+}
+
+function TrendChart({ rows }: { rows: PublicDashboardData["trend"] }) {
+  const width = 960;
+  const height = 300;
+  const padding = { top: 25, right: 22, bottom: 48, left: 48 };
+  const plotWidth = width - padding.left - padding.right;
+  const plotHeight = height - padding.top - padding.bottom;
+  const maxValue = Math.max(1, ...rows.flatMap((row) => [row.newRegistrations, row.adoptions, row.activeUsers]));
+  const x = (index: number) => padding.left + (rows.length <= 1 ? plotWidth / 2 : (index / (rows.length - 1)) * plotWidth);
+  const y = (value: number) => padding.top + plotHeight - (value / maxValue) * plotHeight;
+  const series = [
+    { key: "newRegistrations" as const, label: "신규 등록", color: "#D96A28" },
+    { key: "adoptions" as const, label: "가져가기", color: "#3F6C79" },
+    { key: "activeUsers" as const, label: "활성 사용자", color: "#7A6B52" },
+  ];
+
+  return (
+    <div className="trend-chart" role="img" aria-label="최근 6개월 신규 등록, 가져가기, 활성 사용자 추이 차트">
+      <div className="chart-legend">
+        {series.map((item) => <span key={item.key}><i style={{ background: item.color }} />{item.label}</span>)}
+      </div>
+      <svg viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="xMidYMid meet">
+        {[0, 1, 2, 3, 4].map((step) => {
+          const value = Math.round((maxValue * (4 - step)) / 4);
+          const lineY = padding.top + (plotHeight * step) / 4;
+          return (
+            <g key={step}>
+              <line x1={padding.left} x2={width - padding.right} y1={lineY} y2={lineY} className="chart-grid-line" />
+              <text x={padding.left - 10} y={lineY + 4} textAnchor="end" className="chart-axis-label">{value}</text>
+            </g>
+          );
+        })}
+        {rows.map((row, index) => (
+          <text key={row.month} x={x(index)} y={height - 17} textAnchor="middle" className="chart-axis-label month">{row.label.replace(/^\d{4}년 /, "")}</text>
+        ))}
+        {series.map((item) => {
+          const points = rows.map((row, index) => `${x(index)},${y(row[item.key])}`).join(" ");
+          return (
+            <g key={item.key}>
+              <polyline points={points} fill="none" stroke={item.color} strokeWidth="3" strokeLinejoin="round" strokeLinecap="round" />
+              {rows.map((row, index) => (
+                <circle key={row.month} cx={x(index)} cy={y(row[item.key])} r="4" fill="var(--surface)" stroke={item.color} strokeWidth="2.5">
+                  <title>{`${row.label} ${item.label}: ${row[item.key]}`}</title>
+                </circle>
+              ))}
+            </g>
+          );
+        })}
+      </svg>
+    </div>
+  );
+}
+
+function CategoryBars({ rows }: { rows: PublicDashboardData["categories"] }) {
+  const maxAdoptions = Math.max(1, ...rows.map((row) => row.adoptions));
+  return (
+    <div className="category-bars" aria-label="업무 카테고리별 가져가기 분포">
+      <div className="category-bars-head"><span>업무유형</span><span>가져가기 분포</span><span>등록 / 고유 사용자</span></div>
+      {rows.map((row) => (
+        <div className="category-bar-row" key={row.category}>
+          <b>{row.category}</b>
+          <div className="category-bar-value">
+            <div className="category-bar-track"><i style={{ width: `${(row.adoptions / maxAdoptions) * 100}%` }} /></div>
+            <strong>{row.adoptions}<small>회</small></strong>
+          </div>
+          <span><em>등록 {row.registrations}건</em><em>고유 사용자 {row.uniqueUsers}명</em></span>
+        </div>
+      ))}
+    </div>
+  );
 }
 
 export default function PublicDashboard() {
@@ -47,11 +125,6 @@ export default function PublicDashboard() {
 
     return () => controller.abort();
   }, [days, dept]);
-
-  const usageByDept = useMemo(
-    () => new Map(data?.overview.departments.map((row) => [row.dept, row]) ?? []),
-    [data],
-  );
 
   return (
     <div className="public-dashboard">
@@ -108,69 +181,35 @@ export default function PublicDashboard() {
             {view === "usage" ? (
               <>
             <section className="dashboard-section" id="overview">
-              <div className="section-heading"><span>01</span><div><h2>현황</h2><p>선택한 기간의 실행자와 신규 콘텐츠를 확인합니다.</p></div></div>
+              <div className="section-heading"><span>01</span><div><h2>현황</h2><p>누적 콘텐츠와 선택한 기간의 참여·활용 규모를 확인합니다.</p></div></div>
               <div className="overview-grid">
-                <article><span>활성 사용자</span><strong>{data.overview.totals.activeUsers}<small>명</small></strong><p>기간 내 1회 이상 실행한 고유 사용자</p></article>
-                <article><span>{data.filterDept ? "부서" : "전사"} 활성률</span><strong>{formatRate(data.overview.totals.activeUserRate)}</strong><p>활성 사용자 ÷ 등록 인원수</p></article>
-                <article><span>콘텐츠 실행</span><strong>{data.overview.totals.runs}<small>회</small></strong><p>프롬프트와 에이전트 실행 합계</p></article>
-                <article><span>신규 등록</span><strong>{data.overview.totals.registrations}<small>건</small></strong><p>프롬프트와 에이전트 등록 합계</p></article>
-              </div>
-
-              {data.overview.totals.activeUserRate === null ? (
-                <div className="dashboard-notice">
-                  {data.filterDept
-                    ? `${data.filterDept}의 등록 인원수가 없어 활성률을 표시하지 않습니다.`
-                    : "인원수가 등록되지 않은 부서가 있어 전사 활성률을 계산하지 않습니다. 부서별 절대 수치는 정상 집계됩니다."}
-                </div>
-              ) : null}
-
-              <div className="dashboard-table-wrap">
-                <table>
-                  <thead><tr><th>부서</th><th>등록 인원</th><th>활성 사용자</th><th>활성률</th><th>실행</th><th>등록</th></tr></thead>
-                  <tbody>
-                    {data.overview.departments.map((row) => (
-                      <tr key={row.dept}>
-                        <td>{row.dept}{row.grouped ? <small className="grouped-label">10명 미만 부서 합산</small> : null}</td>
-                        <td>{row.headcount === null ? "-" : `${row.headcount}명`}</td>
-                        <td>{row.activeUsers}명</td>
-                        <td>{formatRate(row.activeUserRate)}</td>
-                        <td>{row.runs}회</td>
-                        <td>{row.registrations}건</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                <article>
+                  <span>전체 등록 콘텐츠 수</span><strong>{data.overview.kpis.totalContents.value}<small>건</small></strong>
+                  <KpiDelta value={data.overview.kpis.totalContents.delta} detail="기간 신규 등록 기준" />
+                </article>
+                <article>
+                  <span>활성 사용자 수</span><strong>{data.overview.kpis.activeUsers.value}<small>명</small></strong>
+                  <KpiDelta value={data.overview.kpis.activeUsers.delta} />
+                </article>
+                <article>
+                  <span>참여 부서 수</span><strong>{data.overview.kpis.participatingDepartments.value}<small>개</small></strong>
+                  <KpiDelta value={data.overview.kpis.participatingDepartments.delta} />
+                </article>
+                <article>
+                  <span>전체 가져가기 수</span><strong>{data.overview.kpis.totalRuns.value}<small>회</small></strong>
+                  <KpiDelta value={data.overview.kpis.totalRuns.delta} />
+                </article>
               </div>
             </section>
 
             <section className="dashboard-section" id="trend">
               <div className="section-heading"><span>02</span><div><h2>추이</h2><p>최근 6개월</p></div></div>
-              <div className="trend-grid">
-                {data.trend.map((row) => (
-                  <article key={row.month}>
-                    <h3>{row.label}</h3>
-                    <dl>
-                      <div><dt>신규 등록</dt><dd>{row.newRegistrations}건</dd></div>
-                      <div><dt>가져가기</dt><dd>{row.adoptions}회</dd></div>
-                      <div><dt>활성 사용자</dt><dd>{row.activeUsers}명</dd></div>
-                    </dl>
-                  </article>
-                ))}
-              </div>
+              <TrendChart rows={data.trend} />
             </section>
 
             <section className="dashboard-section" id="categories">
               <div className="section-heading"><span>03</span><div><h2>업무유형</h2><p>어떤 업무에서 콘텐츠가 등록되고 활용되는지 확인합니다.</p></div></div>
-              <div className="category-grid">
-                {data.categories.map((row) => (
-                  <article key={row.category}>
-                    <h3>{row.category}</h3>
-                    <div><span>등록</span><b>{row.registrations}</b><small>건</small></div>
-                    <div><span>가져가기</span><b>{row.adoptions}</b><small>회</small></div>
-                    <div><span>고유 사용자</span><b>{row.uniqueUsers}</b><small>명</small></div>
-                  </article>
-                ))}
-              </div>
+              <CategoryBars rows={data.categories} />
             </section>
 
             <section className="dashboard-section" id="diffusion">
@@ -178,19 +217,23 @@ export default function PublicDashboard() {
               <div className="dashboard-columns">
                 <div className="dashboard-panel">
                   <h3>부서별 활용 현황</h3>
-                  {data.departmentLeaderboard.length === 0 ? <Empty>표시할 부서 활동이 없습니다.</Empty> : (
+                  {data.overview.departments.length === 0 ? <Empty>표시할 부서 활동이 없습니다.</Empty> : (
                     <div className="dashboard-table-wrap compact">
                       <table>
-                        <thead><tr><th>부서</th><th>점수</th><th>실행</th><th>등록</th><th>활성률</th></tr></thead>
-                        <tbody>{data.departmentLeaderboard.map((row) => (
+                        <thead><tr><th>부서</th><th>등록 인원</th><th>활성 사용자</th><th>활성률</th><th>가져가기</th><th>등록</th></tr></thead>
+                        <tbody>{data.overview.departments.map((row) => (
                           <tr key={row.dept}>
-                            <td>{row.dept}</td><td>{row.score}</td><td>{row.runs}</td><td>{row.registrations}</td>
-                            <td>{formatRate(usageByDept.get(row.dept)?.activeUserRate ?? null)}</td>
+                            <td>{row.dept}{row.grouped ? <small className="grouped-label">10명 미만 부서 합산</small> : null}</td>
+                            <td>{row.headcount === null ? "-" : `${row.headcount}명`}</td>
+                            <td>{row.activeUsers}명</td><td>{formatRate(row.activeUserRate)}</td><td>{row.runs}회</td><td>{row.registrations}건</td>
                           </tr>
                         ))}</tbody>
                       </table>
                     </div>
                   )}
+                  {data.overview.departments.some((row) => row.activeUserRate === null) ? (
+                    <div className="dashboard-notice compact-notice">인원수가 등록되지 않은 부서는 활성률을 표시하지 않습니다.</div>
+                  ) : null}
                 </div>
                 <div className="dashboard-panel">
                   <h3>타 부서 활용</h3>

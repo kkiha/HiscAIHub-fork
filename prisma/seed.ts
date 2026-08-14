@@ -433,7 +433,7 @@ async function main() {
     },
   });
 
-  // 최근 90일 실행 로그. 동일 콘텐츠를 여러 부서가 활용하는 시나리오를 반복해
+  // 최근 180일 실행 로그. 동일 콘텐츠를 여러 부서가 활용하는 시나리오를 반복해
   // 콘텐츠별 실행 부서 수와 타 부서 실행 수가 대시보드에서 뚜렷하게 보이게 한다.
   type RunScenario = { user: string; targetType: "prompt" | "agent"; targetKey: string };
   const runScenarios: RunScenario[] = [
@@ -495,7 +495,7 @@ async function main() {
   }[] = [];
   let crossDeptRunCount = 0;
 
-  for (let dayOffset = 89; dayOffset >= 0; dayOffset -= 1) {
+  for (let dayOffset = 179; dayOffset >= 0; dayOffset -= 1) {
     const date = daysAgoAt(dayOffset);
     const runsToday = [0, 6].includes(date.getDay()) ? 1 : 3;
     for (let runIndex = 0; runIndex < runsToday; runIndex += 1) {
@@ -622,7 +622,7 @@ async function main() {
   }
   console.log(`시딩 완료: 사용자 ${USERS.length}명 / 부서 ${new Set(USERS.map((user) => user.dept)).size}개`);
   console.log(`콘텐츠: 프롬프트 ${PROMPTS.length + 1}건 / 에이전트 ${AGENTS.length + 1}건 / 카테고리 ${JSON.stringify(categoryCounts)}`);
-  console.log(`최근 90일 실행: ${runAuditRows.length}건 (타 부서 실행 ${crossDeptRunCount}건) / 생성 호출: ${usageRows.length}건`);
+  console.log(`최근 180일 실행: ${runAuditRows.length}건 (타 부서 실행 ${crossDeptRunCount}건) / 생성 호출: ${usageRows.length}건`);
 }
 
 main()

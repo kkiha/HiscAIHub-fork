@@ -430,6 +430,63 @@ async function collectPeriodTotals(gte: Date, lt?: Date): Promise<PeriodTotals> 
   return { byDept, byUser };
 }
 
+type DashboardKpi = {
+  value: number;
+  delta: number | null;
+};
+
+export type PublicOverviewKpis = {
+  totalContents: DashboardKpi;
+  activeUsers: DashboardKpi;
+  participatingDepartments: DashboardKpi;
+  totalRuns: DashboardKpi;
+};
+
+function summarizePeriod(period: PeriodTotals, filterDept: string | null) {
+  const selectedDept = filterDept ? period.byDept.get(filterDept) : null;
+  const rows = filterDept ? (selectedDept ? [selectedDept] : []) : Array.from(period.byDept.values());
+  const activeUsers = new Set<string>();
+  for (const row of rows) {
+    for (const userId of row.activeUsers) activeUsers.add(userId);
+  }
+  return {
+    activeUsers: activeUsers.size,
+    participatingDepartments: rows.filter((row) => row.runs > 0 || row.registrations > 0).length,
+    totalRuns: rows.reduce((sum, row) => sum + row.runs, 0),
+    registrations: rows.reduce((sum, row) => sum + row.registrations, 0),
+  };
+}
+
+function periodDelta(current: number, previous: number): number | null {
+  return previous > 0 ? Math.round(((current - previous) / previous) * 100) : null;
+}
+
+export async function getPublicOverviewKpis(days: number, dept?: string): Promise<PublicOverviewKpis> {
+  requirePositiveInteger(days, "집계 기간");
+  const filterDept = normalizeDeptFilter(dept);
+  const since = daysAgo(days);
+  const previousSince = daysAgo(days * 2);
+  const [currentPeriod, previousPeriod, contents] = await Promise.all([
+    collectPeriodTotals(since),
+    collectPeriodTotals(previousSince, since),
+    collectContents(),
+  ]);
+  const current = summarizePeriod(currentPeriod, filterDept);
+  const previous = summarizePeriod(previousPeriod, filterDept);
+  const scopedContents = contents.filter((content) => !filterDept || content.authorDept === filterDept);
+  const totalContents = scopedContents.length;
+
+  return {
+    totalContents: { value: totalContents, delta: periodDelta(current.registrations, previous.registrations) },
+    activeUsers: { value: current.activeUsers, delta: periodDelta(current.activeUsers, previous.activeUsers) },
+    participatingDepartments: {
+      value: current.participatingDepartments,
+      delta: periodDelta(current.participatingDepartments, previous.participatingDepartments),
+    },
+    totalRuns: { value: current.totalRuns, delta: periodDelta(current.totalRuns, previous.totalRuns) },
+  };
+}
+
 function scoreOf(
   row: { runs: number; registrations: number },
   max: { runs: number; registrations: number },
