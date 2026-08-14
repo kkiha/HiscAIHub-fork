@@ -8,54 +8,8 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
   url      = env("DATABASE_URL")
-}
-
-enum UserRole {
-  admin
-  mod
-  user
-}
-
-enum ContentStatus {
-  published
-  hidden
-  flagged
-}
-
-enum ReportStatus {
-  pending
-  resolved
-}
-
-enum ReportAction {
-  keep
-  hide
-  delete
-}
-
-enum NotificationType {
-  comment
-}
-
-enum AuditAction {
-  prompt_generate
-  prompt_create
-  prompt_update
-  prompt_delete
-  prompt_run
-  prompt_copy
-  agent_generate
-  agent_create
-  agent_update
-  agent_delete
-  agent_run
-}
-
-enum AuditStatus {
-  success
-  failure
 }
 
 model User {
@@ -63,7 +17,7 @@ model User {
   email        String    @unique
   name         String
   dept         String
-  role         UserRole  @default(user)
+  role         String    @default("user")
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
   lastActiveAt DateTime?
@@ -91,9 +45,9 @@ model Prompt {
   id          String        @id @default(cuid())
   title       String
   description String
-  body        String        @db.Text
+  body        String
   category    String
-  status      ContentStatus @default(published)
+  status      String        @default("published")
   official    Boolean       @default(false)
   copyCount   Int           @default(0)
   runCount    Int           @default(0)
@@ -116,10 +70,10 @@ model Agent {
   id           String        @id @default(cuid())
   name         String
   description  String
-  instructions String        @db.Text
-  exampleTasks String[]
+  instructions String
+  exampleTasks String        @default("[]")
   category     String
-  status       ContentStatus @default(published)
+  status       String        @default("published")
   official     Boolean       @default(false)
   runCount     Int           @default(0)
   authorId     String
@@ -171,7 +125,7 @@ model Save {
 
 model Notification {
   id          String           @id @default(cuid())
-  type        NotificationType
+  type        String
   recipientId String
   recipient   User             @relation("Recipient", fields: [recipientId], references: [id])
   actorId     String
@@ -196,8 +150,8 @@ model Report {
   prompt     Prompt?       @relation(fields: [promptId], references: [id], onDelete: Cascade)
   agentId    String?
   agent      Agent?        @relation(fields: [agentId], references: [id], onDelete: Cascade)
-  status     ReportStatus  @default(pending)
-  action     ReportAction?
+  status     String        @default("pending")
+  action     String?
   createdAt  DateTime      @default(now())
   resolvedAt DateTime?
 
@@ -210,12 +164,12 @@ model AuditLog {
   id          String      @id @default(cuid())
   userId      String
   user        User        @relation(fields: [userId], references: [id])
-  action      AuditAction
+  action      String
   targetType  String?
   targetId    String?
   targetLabel String?
   fileCount   Int         @default(0)
-  status      AuditStatus @default(success)
+  status      String      @default("success")
   createdAt   DateTime    @default(now())
 
   @@index([userId])

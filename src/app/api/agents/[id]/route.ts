@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/current-user";
 import { getAgentDTO } from "@/lib/agents";
 import { isWorkCategory } from "@/lib/work-categories";
+import { parseAgentExampleTasks, serializeAgentExampleTasks } from "@/lib/agent-example-tasks";
 
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -20,7 +21,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   const category = String(body.cat ?? "").trim() || existing.category;
   const tasks = Array.isArray(body.tasks)
     ? body.tasks.map((t: unknown) => String(t).trim()).filter(Boolean)
-    : existing.exampleTasks;
+    : parseAgentExampleTasks(existing.exampleTasks);
 
   if (!isWorkCategory(category)) {
     return NextResponse.json({ error: "올바른 업무 카테고리를 선택해주세요." }, { status: 400 });
@@ -31,7 +32,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 
   await db.agent.update({
     where: { id },
-    data: { name, description, instructions, exampleTasks: tasks, category },
+    data: { name, description, instructions, exampleTasks: serializeAgentExampleTasks(tasks), category },
   });
   const dto = await getAgentDTO(id, user.id);
   return NextResponse.json({ agent: dto });

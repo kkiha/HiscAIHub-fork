@@ -1,6 +1,7 @@
 // design-reference/prompthub-demo_v16.html · prompthub-admin.html 의 데모 데이터를 DB로 이관.
 import { PrismaClient } from "@prisma/client";
 import { WORK_CATEGORIES, type WorkCategory } from "../src/lib/work-categories";
+import { serializeAgentExampleTasks } from "../src/lib/agent-example-tasks";
 
 const db = new PrismaClient();
 
@@ -346,7 +347,7 @@ async function main() {
         name: a.name,
         description: a.desc,
         instructions: a.instructions,
-        exampleTasks: a.tasks,
+        exampleTasks: serializeAgentExampleTasks(a.tasks),
         category: a.cat,
         runCount: a.runs,
         authorId,
@@ -409,7 +410,7 @@ async function main() {
       name: FLAGGED_EXTRA[1].title,
       description: "(신고 검수 대상 샘플 콘텐츠)",
       instructions: "(내부 비공개 수치 노출 의심으로 신고된 샘플 지침)",
-      exampleTasks: [],
+      exampleTasks: serializeAgentExampleTasks([]),
       category: "분석",
       status: "flagged",
       runCount: 6,

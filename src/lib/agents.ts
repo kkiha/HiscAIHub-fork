@@ -3,6 +3,7 @@ import { db } from "./db";
 import type { Prisma } from "@prisma/client";
 import { fmtDate } from "./prompts";
 import type { CommentDTO } from "./prompts";
+import { parseAgentExampleTasks } from "./agent-example-tasks";
 
 export type AgentDTO = {
   id: string;
@@ -52,7 +53,7 @@ function serializeAgent(a: LoadedAgent, userId: string | null): AgentDTO {
     name: a.name,
     desc: a.description,
     instructions: a.instructions,
-    tasks: a.exampleTasks,
+    tasks: parseAgentExampleTasks(a.exampleTasks),
     author: a.author.name,
     dept: a.author.dept,
     ava: a.author.name.charAt(0),

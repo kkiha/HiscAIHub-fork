@@ -3,7 +3,8 @@
 // 시간이 지나면 대시보드의 "최근 7일" 집계 범위 밖으로 밀려나 수치가 0으로 보임.
 // 이 스크립트는 실행 시점 기준 최근 14일에 걸쳐 로그를 추가로 채워 넣는다.
 // 기존 데이터는 건드리지 않고 추가만 하므로 여러 번 실행하면 중복 누적됨 — 필요할 때만 실행.
-import { PrismaClient, type AuditAction, type AuditStatus } from "@prisma/client";
+import { PrismaClient } from "@prisma/client";
+import type { AuditAction, AuditStatus } from "../src/lib/domain-values";
 
 const db = new PrismaClient();
 

@@ -2,7 +2,7 @@
 // 백엔드 Claude 메타프롬프트 호출로 교체. 구조화된 출력(zod)으로 안정적으로 파싱.
 import { z } from "zod";
 import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
-import { anthropic, GENERATE_MODEL, estimateCostUsd } from "./anthropic";
+import { getAnthropic, GENERATE_MODEL, estimateCostUsd } from "./anthropic";
 import { db } from "./db";
 import type { WorkCategory } from "./work-categories";
 
@@ -73,7 +73,7 @@ export async function generatePrompt(userId: string, cat: WorkCategory, task: st
 - ${COMPLIANCE_RULE}
 - ${SENSITIVE_RULE}`;
 
-  const response = await anthropic.messages.parse({
+  const response = await getAnthropic().messages.parse({
     model: GENERATE_MODEL,
     max_tokens: 2048,
     system,
@@ -103,7 +103,7 @@ export async function generateAgent(userId: string, cat: WorkCategory, task: str
 - ${SENSITIVE_RULE}
 - tasks는 정확히 3개, 사용자가 그대로 입력할 법한 짧은 명령형 문장으로 작성합니다.`;
 
-  const response = await anthropic.messages.parse({
+  const response = await getAnthropic().messages.parse({
     model: GENERATE_MODEL,
     max_tokens: 2048,
     system,

@@ -1,6 +1,7 @@
 // 관리자 콘솔 데이터 계층 — DB ↔ 관리자 콘솔 DTO 변환.
 import { db } from "./db";
 import { WORK_CATEGORIES } from "./work-categories";
+import { isContentStatus, isUserRole, type ContentStatus, type ReportAction, type UserRole } from "./domain-values";
 
 function fmtDateTime(d: Date): string {
   const dt = `${String(d.getMonth() + 1).padStart(2, "0")}.${String(d.getDate()).padStart(2, "0")}`;
@@ -28,7 +29,7 @@ type CollectedContent = {
   authorDept: string;
   createdAt: Date;
   runCount: number;
-  status: "published" | "hidden" | "flagged";
+  status: ContentStatus;
   official: boolean;
 };
 
@@ -77,7 +78,7 @@ async function collectContents(createdAt?: DateRange): Promise<CollectedContent[
       authorDept: prompt.author.dept,
       createdAt: prompt.createdAt,
       runCount: prompt.runCount,
-      status: prompt.status,
+      status: isContentStatus(prompt.status) ? prompt.status : "flagged",
       official: prompt.official,
     })),
     ...agents.map((agent) => ({
@@ -90,7 +91,7 @@ async function collectContents(createdAt?: DateRange): Promise<CollectedContent[
       authorDept: agent.author.dept,
       createdAt: agent.createdAt,
       runCount: agent.runCount,
-      status: agent.status,
+      status: isContentStatus(agent.status) ? agent.status : "flagged",
       official: agent.official,
     })),
   ];
@@ -263,7 +264,7 @@ export async function listPendingReports() {
   }));
 }
 
-export async function resolveReport(reportId: string, action: "keep" | "hide" | "delete"): Promise<void> {
+export async function resolveReport(reportId: string, action: ReportAction): Promise<void> {
   const report = await db.report.findUniqueOrThrow({ where: { id: reportId } });
 
   if (action === "delete") {
@@ -298,11 +299,11 @@ export async function listUsersAdmin() {
     email: u.email,
     posts: postsByAuthor.get(u.id) ?? 0,
     last: u.lastActiveAt ? fmtDateTime(u.lastActiveAt) : "-",
-    role: u.role,
+    role: isUserRole(u.role) ? u.role : "user",
   }));
 }
 
-export async function updateUserRole(userId: string, role: "admin" | "mod" | "user"): Promise<string> {
+export async function updateUserRole(userId: string, role: UserRole): Promise<string> {
   const updated = await db.user.update({ where: { id: userId }, data: { role } });
   return updated.name;
 }
@@ -705,7 +706,7 @@ export async function getCategoryStats(days: number, dept?: string): Promise<Cat
     category.users.add(log.userId);
   }
 
-  const categoryOrder = new Map(WORK_CATEGORIES.map((category, index) => [category, index]));
+  const categoryOrder = new Map<string, number>(WORK_CATEGORIES.map((category, index) => [category, index]));
   return Array.from(stats.entries())
     .map(([category, value]) => ({
       category,

@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/current-user";
 import { getAgentDTO, listAgents } from "@/lib/agents";
 import { isWorkCategory } from "@/lib/work-categories";
+import { serializeAgentExampleTasks } from "@/lib/agent-example-tasks";
 
 export async function GET() {
   const user = await getCurrentUser();
@@ -36,7 +37,7 @@ export async function POST(req: Request) {
   }
 
   const created = await db.agent.create({
-    data: { name, description, instructions, exampleTasks: tasks, category, authorId: user.id },
+    data: { name, description, instructions, exampleTasks: serializeAgentExampleTasks(tasks), category, authorId: user.id },
   });
   const dto = await getAgentDTO(created.id, user.id);
   return NextResponse.json({ agent: dto }, { status: 201 });

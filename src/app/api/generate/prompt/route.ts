@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/current-user";
 import { generatePrompt } from "@/lib/generate";
-import { friendlyClaudeError } from "@/lib/anthropic";
+import { friendlyClaudeError, isAiGenerationEnabled } from "@/lib/anthropic";
 import { isWorkCategory } from "@/lib/work-categories";
 
 export async function POST(req: Request) {
@@ -14,6 +14,9 @@ export async function POST(req: Request) {
   if (!cat) return NextResponse.json({ error: "업무 카테고리를 선택해주세요." }, { status: 400 });
   if (!isWorkCategory(cat)) return NextResponse.json({ error: "올바른 업무 카테고리를 선택해주세요." }, { status: 400 });
   if (!task) return NextResponse.json({ error: "하려는 업무를 입력해주세요." }, { status: 400 });
+  if (!isAiGenerationEnabled()) {
+    return NextResponse.json({ error: "로컬 데모에서는 AI 생성 기능이 비활성화되어 있습니다." }, { status: 503 });
+  }
 
   try {
     const result = await generatePrompt(user.id, cat, task);
