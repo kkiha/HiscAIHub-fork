@@ -19,20 +19,28 @@ function Empty({ children }: { children: React.ReactNode }) {
   return <div className="dashboard-empty">{children}</div>;
 }
 
-function KpiDelta({ value, detail }: { value: number | null; detail?: string }) {
-  if (value === null) return <p className="kpi-delta neutral">직전 동일 기간 대비 -{detail ? ` · ${detail}` : ""}</p>;
-  const direction = value > 0 ? "up" : value < 0 ? "down" : "neutral";
-  const marker = value > 0 ? "↑" : value < 0 ? "↓" : "→";
-  return <p className={`kpi-delta ${direction}`}>직전 동일 기간 대비 {marker} {Math.abs(value)}%{detail ? ` · ${detail}` : ""}</p>;
-}
+function KpiComparison({
+  label,
+  value,
+  unit,
+  delta,
+}: {
+  label: string;
+  value: number;
+  unit: string;
+  delta: number | null;
+}) {
+  const direction = delta === null ? "neutral" : delta > 0 ? "up" : delta < 0 ? "down" : "neutral";
+  const comparison = delta === null
+    ? "-"
+    : `${delta > 0 ? "↑" : delta < 0 ? "↓" : "→"} ${Math.abs(delta)}%`;
 
-function RegistrationDelta({ registrations, delta }: { registrations: number; delta: number | null }) {
-  if (delta === null) {
-    return <p className="kpi-delta neutral">기간 신규 등록 {registrations}건 (직전 대비 -)</p>;
-  }
-  const direction = delta > 0 ? "up" : delta < 0 ? "down" : "neutral";
-  const marker = delta > 0 ? "↑" : delta < 0 ? "↓" : "→";
-  return <p className={`kpi-delta ${direction}`}>기간 신규 등록 {registrations}건 (직전 대비 {marker} {Math.abs(delta)}%)</p>;
+  return (
+    <div className="kpi-comparison">
+      <p className="kpi-period-value">선택 기간: {label} {value}{unit}</p>
+      <p className={`kpi-delta ${direction}`}>직전 동일 기간 대비 {comparison}</p>
+    </div>
+  );
 }
 
 function TrendChart({ rows }: { rows: PublicDashboardData["trend"] }) {
@@ -220,19 +228,19 @@ export default function PublicDashboard() {
               <div className="overview-grid">
                 <article>
                   <span>전체 등록 콘텐츠 수</span><strong>{data.overview.kpis.totalContents.value}<small>건</small></strong>
-                  <RegistrationDelta registrations={data.overview.totals.registrations} delta={data.overview.kpis.totalContents.delta} />
+                  <KpiComparison label="신규 등록" value={data.overview.totals.registrations} unit="건" delta={data.overview.kpis.totalContents.delta} />
                 </article>
                 <article>
                   <span>활성 사용자 수</span><strong>{data.overview.kpis.activeUsers.value}<small>명</small></strong>
-                  <KpiDelta value={data.overview.kpis.activeUsers.delta} />
+                  <KpiComparison label="활성 사용자" value={data.overview.kpis.activeUsers.value} unit="명" delta={data.overview.kpis.activeUsers.delta} />
                 </article>
                 <article>
                   <span>참여 부서 수</span><strong>{data.overview.kpis.participatingDepartments.value}<small>개</small></strong>
-                  <KpiDelta value={data.overview.kpis.participatingDepartments.delta} />
+                  <KpiComparison label="참여 부서" value={data.overview.kpis.participatingDepartments.value} unit="개" delta={data.overview.kpis.participatingDepartments.delta} />
                 </article>
                 <article>
                   <span>전체 가져가기 수</span><strong>{data.overview.kpis.totalRuns.value}<small>회</small></strong>
-                  <KpiDelta value={data.overview.kpis.totalRuns.delta} />
+                  <KpiComparison label="가져가기" value={data.overview.kpis.totalRuns.value} unit="회" delta={data.overview.kpis.totalRuns.delta} />
                 </article>
               </div>
             </section>
