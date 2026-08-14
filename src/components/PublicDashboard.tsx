@@ -20,11 +20,13 @@ function Empty({ children }: { children: React.ReactNode }) {
 }
 
 function KpiComparison({
+  days,
   label,
   value,
   unit,
   delta,
 }: {
+  days: number;
   label: string;
   value: number;
   unit: string;
@@ -37,7 +39,7 @@ function KpiComparison({
 
   return (
     <div className="kpi-comparison">
-      <p className="kpi-period-value">선택 기간: {label} {value}{unit}</p>
+      <p className="kpi-period-value">최근 {days}일 {label} {value}{unit}</p>
       <p className={`kpi-delta ${direction}`}>직전 동일 기간 대비 {comparison}</p>
     </div>
   );
@@ -229,19 +231,19 @@ export default function PublicDashboard() {
               <div className="overview-grid">
                 <article>
                   <span>전체 등록 콘텐츠 수</span><strong>{data.overview.kpis.totalContents.value}<small>건</small></strong>
-                  <KpiComparison label="신규 등록" value={data.overview.totals.registrations} unit="건" delta={data.overview.kpis.totalContents.delta} />
+                  <KpiComparison days={data.periodDays} label="신규 등록" value={data.overview.totals.registrations} unit="건" delta={data.overview.kpis.totalContents.delta} />
                 </article>
                 <article>
                   <span>활성 사용자 수</span><strong>{data.overview.kpis.activeUsers.value}<small>명</small></strong>
-                  <KpiComparison label="활성 사용자" value={data.overview.kpis.activeUsers.value} unit="명" delta={data.overview.kpis.activeUsers.delta} />
+                  <KpiComparison days={data.periodDays} label="1회 이상 가져간 사용자" value={data.overview.kpis.activeUsers.value} unit="명" delta={data.overview.kpis.activeUsers.delta} />
                 </article>
                 <article>
                   <span>참여 부서 수</span><strong>{data.overview.kpis.participatingDepartments.value}<small>개</small></strong>
-                  <KpiComparison label="참여 부서" value={data.overview.kpis.participatingDepartments.value} unit="개" delta={data.overview.kpis.participatingDepartments.delta} />
+                  <KpiComparison days={data.periodDays} label="등록·가져가기가 있었던 부서" value={data.overview.kpis.participatingDepartments.value} unit="개" delta={data.overview.kpis.participatingDepartments.delta} />
                 </article>
                 <article>
                   <span>전체 가져가기 수</span><strong>{data.overview.kpis.totalRuns.value}<small>회</small></strong>
-                  <KpiComparison label="가져가기" value={data.overview.kpis.totalRuns.value} unit="회" delta={data.overview.kpis.totalRuns.delta} />
+                  <KpiComparison days={data.periodDays} label="발생한 가져가기" value={data.overview.kpis.totalRuns.value} unit="회" delta={data.overview.kpis.totalRuns.delta} />
                 </article>
               </div>
             </section>
