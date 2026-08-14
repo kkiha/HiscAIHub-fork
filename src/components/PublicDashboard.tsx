@@ -120,8 +120,8 @@ function TrendChart({ rows }: { rows: PublicDashboardData["trend"] }) {
 function CategoryBars({ rows }: { rows: PublicDashboardData["categories"] }) {
   const maxAdoptions = Math.max(1, ...rows.map((row) => row.adoptions));
   return (
-    <div className="category-bars" aria-label="업무 카테고리별 가져가기 분포">
-      <div className="category-bars-head"><span>업무유형</span><span>가져가기 분포</span><span>등록 / 고유 사용자</span></div>
+    <div className="category-bars" aria-label="업무 카테고리별 가져가기 및 활성 사용자 분포">
+      <div className="category-bars-head"><span>업무유형</span><span>가져가기 분포</span><span>등록 / 활성 사용자</span></div>
       {rows.map((row) => (
         <div className="category-bar-row" key={row.category}>
           <b>{row.category}</b>
@@ -129,9 +129,10 @@ function CategoryBars({ rows }: { rows: PublicDashboardData["categories"] }) {
             <div className="category-bar-track"><i style={{ width: `${(row.adoptions / maxAdoptions) * 100}%` }} /></div>
             <strong>{row.adoptions}<small>회</small></strong>
           </div>
-          <span><em>등록 {row.registrations}건</em><em>고유 사용자 {row.uniqueUsers}명</em></span>
+          <span><em>등록 {row.registrations}건</em><em>활성 사용자 {row.uniqueUsers}명</em></span>
         </div>
       ))}
+      <p className="dashboard-footnote">* 업무유형별 활성 사용자는 중복 집계됩니다. 한 사람이 여러 업무유형을 활용할 수 있습니다.</p>
     </div>
   );
 }
