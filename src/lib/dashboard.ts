@@ -1,7 +1,7 @@
 // 전 임직원 공개 대시보드 집계.
 //
 // 관리자 콘솔이 아니라 메인 화면에서 누구나 보는 화면이라, 개인을 특정해 불이익을 줄 수 있는
-// 지표(미사용자 명단 등)는 만들지 않는다. 순위는 상위만 노출한다.
+// 지표(미사용자 명단 등)나 개인별 순위는 만들지 않는다.
 //
 // 모든 확산 지표의 원천은 AuditLog(action=agent_run) 한 곳이다.
 //   - deptSnapshot : 실행 시점 부서 → "어디까지 퍼졌는가"
@@ -56,17 +56,6 @@ export type TeamRow = {
   delta: number | null;
 };
 
-export type PersonRow = {
-  id: string;
-  name: string;
-  ava: string;
-  team: string;
-  runs: number;
-  registrations: number;
-  score: number;
-  badges: ("runs" | "registrations")[];
-};
-
 export type CategoryRow = { cat: string; runs: number; registrations: number };
 
 export type SpreadRow = {
@@ -85,18 +74,16 @@ export type DashboardData = {
   kpis: KpiCard[];
   savedHours: number;
   teams: TeamRow[];
-  powerUser: PersonRow | null;
-  individuals: PersonRow[];
   byCategory: CategoryRow[];
   spread: SpreadRow[];
 };
 
-type RunLog = { userId: string; deptSnapshot: string; targetId: string | null };
+type RunLog = { deptSnapshot: string; targetId: string | null };
 
 async function runLogsBetween(gte: Date, lt?: Date): Promise<RunLog[]> {
   return db.auditLog.findMany({
     where: { action: "agent_run", createdAt: lt ? { gte, lt } : { gte } },
-    select: { userId: true, deptSnapshot: true, targetId: true },
+    select: { deptSnapshot: true, targetId: true },
   });
 }
 
@@ -133,12 +120,12 @@ export async function getDashboardData(period: Period): Promise<DashboardData> {
           category: true,
           timeBefore: true,
           timeAfter: true,
-          author: { select: { id: true, name: true, dept: true } },
+          author: { select: { dept: true } },
         },
       }),
       db.agent.findMany({
         where: { createdAt: { gte: since } },
-        select: { category: true, author: { select: { id: true, name: true, dept: true } } },
+        select: { category: true, author: { select: { dept: true } } },
       }),
       db.agent.findMany({
         where: { createdAt: { gte: prevSince, lt: since } },
@@ -229,49 +216,6 @@ export async function getDashboardData(period: Period): Promise<DashboardData> {
         avgRunsPerUser: users ? Math.round((teamRuns / users) * 10) / 10 : 0,
         score,
         delta: pctDelta(score, prevScore),
-      };
-    })
-    .sort((a, b) => b.score - a.score);
-
-  // ---------- 개인 리더보드 ----------
-  const runsByUser = countBy(runs, (r) => r.userId);
-  const regsByUser = countBy(newAgents, (a) => a.author.id);
-  const userInfo = new Map<string, { name: string; dept: string }>();
-  for (const a of agents) userInfo.set(a.author.id, { name: a.author.name, dept: a.author.dept });
-  for (const a of newAgents) userInfo.set(a.author.id, { name: a.author.name, dept: a.author.dept });
-
-  const missingIds = [...runsByUser.keys()].filter((id) => !userInfo.has(id));
-  if (missingIds.length) {
-    const found = await db.user.findMany({
-      where: { id: { in: missingIds } },
-      select: { id: true, name: true, dept: true },
-    });
-    for (const u of found) userInfo.set(u.id, { name: u.name, dept: u.dept });
-  }
-
-  const maxUserRuns = Math.max(0, ...runsByUser.values());
-  const maxUserRegs = Math.max(0, ...regsByUser.values());
-
-  const individuals: PersonRow[] = [...new Set([...runsByUser.keys(), ...regsByUser.keys()])]
-    .map((id) => {
-      const info = userInfo.get(id);
-      const userRuns = runsByUser.get(id) ?? 0;
-      const userRegs = regsByUser.get(id) ?? 0;
-      const badges: PersonRow["badges"] = [];
-      if (maxUserRuns > 0 && userRuns === maxUserRuns) badges.push("runs");
-      if (maxUserRegs > 0 && userRegs === maxUserRegs) badges.push("registrations");
-      return {
-        id,
-        name: info?.name ?? "(탈퇴)",
-        ava: (info?.name ?? "?").charAt(0),
-        team: info?.dept ?? "-",
-        runs: userRuns,
-        registrations: userRegs,
-        score: Math.round(
-          weighted(userRuns, maxUserRuns, SCORE_WEIGHTS.runs) +
-            weighted(userRegs, maxUserRegs, SCORE_WEIGHTS.registrations),
-        ),
-        badges,
       };
     })
     .sort((a, b) => b.score - a.score);
@@ -384,8 +328,6 @@ export async function getDashboardData(period: Period): Promise<DashboardData> {
     kpis,
     savedHours: Math.round(savedMin / 60),
     teams,
-    powerUser: individuals[0] ?? null,
-    individuals: individuals.slice(0, 5),
     byCategory,
     spread,
   };

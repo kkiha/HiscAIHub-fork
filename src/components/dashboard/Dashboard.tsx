@@ -7,7 +7,6 @@ import KpiStrip from "./KpiStrip";
 import TeamShare from "./TeamShare";
 import TeamRanking from "./TeamRanking";
 import SpreadPanel from "./SpreadPanel";
-import PeoplePanel from "./PeoplePanel";
 import CategoryPanel from "./CategoryPanel";
 import SubscriptionSection from "./SubscriptionSection";
 
@@ -123,20 +122,13 @@ export default function Dashboard() {
               </div>
             </div>
 
-            <div className="dash-2col">
-              <div className="dash-panel">
-                <div className="panel-head">파워 유저 · 임직원 랭킹</div>
-                <div className="panel-sub">이 기간에 가장 활발했던 임직원이에요.</div>
-                <PeoplePanel powerUser={data.powerUser} individuals={data.individuals} />
+            <div className="dash-panel">
+              <div className="panel-head">업무 유형별 등록 · 실행</div>
+              <div className="panel-sub">
+                등록 시 고른 카테고리 기준이에요. 실행이 0인 카테고리는 아직 쓰이지 않은
+                영역입니다.
               </div>
-              <div className="dash-panel">
-                <div className="panel-head">업무 유형별 등록 · 실행</div>
-                <div className="panel-sub">
-                  등록 시 고른 카테고리 기준이에요. 실행이 0인 카테고리는 아직 쓰이지 않은
-                  영역입니다.
-                </div>
-                <CategoryPanel rows={data.byCategory} savedHours={data.savedHours} />
-              </div>
+              <CategoryPanel rows={data.byCategory} savedHours={data.savedHours} />
             </div>
           </>
         )}
