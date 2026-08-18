@@ -45,7 +45,6 @@ export default function TeamRanking({
           <th>종합점수</th>
           <th>실행</th>
           <th>등록</th>
-          <th>활성 인원</th>
           <th>인당 실행</th>
           <th>전기간 대비</th>
         </tr>
@@ -72,7 +71,6 @@ export default function TeamRanking({
                 </td>
                 <td>{r.runs}</td>
                 <td>{r.registrations}</td>
-                <td>{r.activeUsers}</td>
                 <td>{r.avgRunsPerUser.toFixed(1)}</td>
                 <td>
                   <DeltaCell value={r.delta} />
@@ -80,7 +78,7 @@ export default function TeamRanking({
               </tr>
               {open && (
                 <tr>
-                  <td className="drill-td" colSpan={8}>
+                  <td className="drill-td" colSpan={7}>
                     <div className="howto-sub" style={{ marginBottom: 8 }}>
                       {r.team}이(가) 실행한 에이전트
                     </div>
