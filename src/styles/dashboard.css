@@ -11,7 +11,7 @@
 .range-toggle button.on { background: var(--surface); color: var(--org); font-weight: 500; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06); }
 
 /* KPI */
-.kpi-strip { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 22px; }
+.kpi-strip { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin-bottom: 22px; }
 @media (max-width: 1080px) { .kpi-strip { grid-template-columns: repeat(3, 1fr); } }
 @media (max-width: 660px) { .kpi-strip { grid-template-columns: repeat(2, 1fr); } }
 .kpi { background: var(--surface); border: 0.5px solid var(--border); border-radius: var(--radius-lg); padding: 14px 15px; }

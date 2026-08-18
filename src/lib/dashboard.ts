@@ -254,28 +254,15 @@ export async function getDashboardData(period: Period): Promise<DashboardData> {
 
   // ---------- KPI ----------
   const totalRuns = runs.length;
-  const registeredCategories = new Set(agents.map((a) => a.category)).size;
-  const ranCategories = [...runsByCategory.values()].filter((n) => n > 0).length;
-  const totalCategories = categoryNames.length;
   const spreadOutside = spread.filter((s) => s.outsidePct > 0).length;
-  const avgTeamsPerAgent = spread.length
-    ? Math.round((spread.reduce((sum, s) => sum + s.teams, 0) / spread.length) * 10) / 10
-    : 0;
 
   const kpis: KpiCard[] = [
     {
-      key: "registrations",
-      label: "에이전트 등록",
-      value: String(newAgents.length),
-      unit: "건",
-      delta: pctDelta(newAgents.length, prevNewAgents.length),
-    },
-    {
-      key: "teams",
-      label: "참여 부서",
-      value: String(teams.length),
-      unit: "곳",
-      delta: pctDelta(teams.length, new Set(prevRuns.map((r) => r.deptSnapshot)).size),
+      key: "runs",
+      label: "에이전트 실행",
+      value: String(totalRuns),
+      unit: "회",
+      delta: pctDelta(totalRuns, prevRuns.length),
     },
     {
       key: "activeUsers",
@@ -285,39 +272,24 @@ export async function getDashboardData(period: Period): Promise<DashboardData> {
       delta: pctDelta(activity.length, prevActivity.length),
     },
     {
-      key: "runs",
-      label: "에이전트 실행",
-      value: String(totalRuns),
-      unit: "회",
-      delta: pctDelta(totalRuns, prevRuns.length),
+      key: "teams",
+      label: "참여 부서",
+      value: String(teams.length),
+      unit: "곳",
+      delta: pctDelta(teams.length, new Set(prevRuns.map((r) => r.deptSnapshot)).size),
     },
     {
-      key: "registeredCategories",
-      label: "등록 카테고리",
-      value: String(registeredCategories),
-      unit: `/ ${totalCategories}`,
-      delta: null,
-    },
-    {
-      key: "ranCategories",
-      label: "실행 카테고리",
-      value: String(ranCategories),
-      unit: `/ ${totalCategories}`,
-      delta: null,
+      key: "registrations",
+      label: "에이전트 등록",
+      value: String(newAgents.length),
+      unit: "건",
+      delta: pctDelta(newAgents.length, prevNewAgents.length),
     },
     {
       key: "spreadOutside",
       label: "타팀까지 퍼진 에이전트",
       value: String(spreadOutside),
       unit: `/ ${spread.length}건`,
-      delta: null,
-      spread: true,
-    },
-    {
-      key: "avgTeams",
-      label: "에이전트당 평균 실행 팀",
-      value: avgTeamsPerAgent.toFixed(1),
-      unit: "팀",
       delta: null,
       spread: true,
     },
