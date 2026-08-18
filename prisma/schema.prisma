@@ -8,74 +8,9 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  // [SQLITE] PostgreSQL 복귀 시: provider를 "postgresql"로 되돌린다.
+  provider = "sqlite"
   url      = env("DATABASE_URL")
-}
-
-enum UserRole {
-  admin
-  mod
-  user
-}
-
-enum ContentStatus {
-  published
-  hidden
-  flagged
-}
-
-enum ReportStatus {
-  pending
-  resolved
-}
-
-enum ReportAction {
-  keep
-  hide
-  delete
-}
-
-enum NotificationType {
-  review
-}
-
-enum AuditAction {
-  agent_generate
-  agent_create
-  agent_update
-  agent_delete
-  agent_run
-  agent_copy
-}
-
-enum AuditStatus {
-  success
-  failure
-}
-
-// 에이전트 실행 방식. 목업 RUN_TYPES와 1:1.
-enum RunType {
-  schedule // 자동 실행 (스케줄)
-  event // 사내 시스템 연동
-  skill // 내 PC에 설치
-  app // 웹·메신저에서 사용
-}
-
-// 1회 처리 소요시간 구간(객관식). 등록·후기 모두 도입 전/후를 이 구간으로 받고,
-// 절감률은 구간 대표값(lib/time-band.ts의 MID)으로 계산한다.
-enum TimeBand {
-  under_10m // 10분 미만      · 대표값 5분
-  m10_30 // 10~30분        · 대표값 20분
-  m30_60 // 30분~1시간     · 대표값 45분
-  h1_3 // 1~3시간        · 대표값 120분
-  h3_8 // 3시간~1일      · 대표값 330분
-  over_1d // 1일 이상       · 대표값 600분
-}
-
-// 구독 현황 행의 집계 단위.
-enum SubScope {
-  division // 부문/실
-  team // 팀
 }
 
 model User {
@@ -83,7 +18,8 @@ model User {
   email        String    @unique
   name         String
   dept         String
-  role         UserRole  @default(user)
+  // [SQLITE] PostgreSQL 복귀 시: UserRole enum과 @default(user)로 되돌린다. 허용값은 src/lib/domain-values.ts 참조.
+  role         String    @default("user")
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
   lastActiveAt DateTime?
@@ -107,32 +43,43 @@ model Category {
 }
 
 model Agent {
-  id          String        @id @default(cuid())
+  id          String  @id @default(cuid())
   name        String
   description String
   category    String
-  status      ContentStatus @default(published)
-  official    Boolean       @default(false)
-  runCount    Int           @default(0)
+  // [SQLITE] PostgreSQL 복귀 시: ContentStatus enum과 @default(published)로 되돌린다. 허용값은 src/lib/domain-values.ts 참조.
+  status      String  @default("published")
+  official    Boolean @default(false)
+  runCount    Int     @default(0)
 
   // 실행 방식
-  runType RunType
+  // [SQLITE] PostgreSQL 복귀 시: RunType enum으로 되돌린다. 허용값은 src/lib/domain-values.ts 참조.
+  runType String
   trigger String // 언제 도는지 — "매일 오전 06:30 (평일)", "신규 티켓이 생성될 때마다"
 
   // 무슨 일을 하는가
-  targetTask String   @db.Text // 이 에이전트가 맡는 업무 (도입 전 상황 포함)
-  tasks      String[] // 에이전트가 스스로 하는 일 (순서 있는 목록)
-  tools      String[] // 연결되는 도구·데이터
+  // [SQLITE] PostgreSQL 복귀 시: @db.Text를 복원한다.
+  targetTask String // 이 에이전트가 맡는 업무 (도입 전 상황 포함)
+  // [SQLITE] PostgreSQL 복귀 시: String[]으로 되돌린다. 읽기·쓰기는 src/lib/json-list.ts 경유.
+  tasks      Json   @default("[]") // 에이전트가 스스로 하는 일 (순서 있는 목록)
+  // [SQLITE] PostgreSQL 복귀 시: String[]으로 되돌린다. 읽기·쓰기는 src/lib/json-list.ts 경유.
+  tools      Json   @default("[]") // 연결되는 도구·데이터
 
   // 효과
-  effect     String    @db.Text
-  timeBefore TimeBand? // 도입 전 1회 소요시간
-  timeAfter  TimeBand? // 도입 후 1회 소요시간
+  // [SQLITE] PostgreSQL 복귀 시: @db.Text를 복원한다.
+  effect     String
+  // [SQLITE] PostgreSQL 복귀 시: TimeBand enum으로 되돌린다. 허용값은 src/lib/domain-values.ts 참조.
+  timeBefore String? // 도입 전 1회 소요시간
+  // [SQLITE] PostgreSQL 복귀 시: TimeBand enum으로 되돌린다. 허용값은 src/lib/domain-values.ts 참조.
+  timeAfter  String? // 도입 후 1회 소요시간
 
   // 사용 방법
-  prerequisites String[] // 미리 준비할 것
-  howToUse      String[] // 사용 순서
-  instructions  String   @db.Text // 에이전트 정의 (복사 대상)
+  // [SQLITE] PostgreSQL 복귀 시: String[]으로 되돌린다. 읽기·쓰기는 src/lib/json-list.ts 경유.
+  prerequisites Json    @default("[]") // 미리 준비할 것
+  // [SQLITE] PostgreSQL 복귀 시: String[]으로 되돌린다. 읽기·쓰기는 src/lib/json-list.ts 경유.
+  howToUse      Json    @default("[]") // 사용 순서
+  // [SQLITE] PostgreSQL 복귀 시: @db.Text를 복원한다.
+  instructions  String // 에이전트 정의 (복사 대상)
   linkUrl       String? // 사내 Git 저장소 등 바로가기
 
   authorId  String
@@ -156,7 +103,8 @@ model AgentOutput {
   id      String @id @default(cuid())
   agentId String
   agent   Agent  @relation(fields: [agentId], references: [id], onDelete: Cascade)
-  src     String @db.Text // 이미지 URL 또는 data URI
+  // [SQLITE] PostgreSQL 복귀 시: @db.Text를 복원한다.
+  src     String // 이미지 URL 또는 data URI
   caption String
   order   Int    @default(0)
 
@@ -166,16 +114,19 @@ model AgentOutput {
 // 활용 후기 — 단순 댓글이 아니라 "어디에 썼는지 + 효과 + 도입 전/후 소요시간".
 // 공개이며 작성자에게 알림이 간다. 남긴 시간 구간은 전사 절감 시간 집계에 반영된다.
 model Review {
-  id         String    @id @default(cuid())
+  id         String   @id @default(cuid())
   agentId    String
-  agent      Agent     @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  agent      Agent    @relation(fields: [agentId], references: [id], onDelete: Cascade)
   userId     String
-  user       User      @relation(fields: [userId], references: [id])
+  user       User     @relation(fields: [userId], references: [id])
   useCase    String? // 어떤 업무에 썼는지
-  effect     String    @db.Text // 어떤 효과가 있었는지 (필수)
-  timeBefore TimeBand?
-  timeAfter  TimeBand?
-  createdAt  DateTime  @default(now())
+  // [SQLITE] PostgreSQL 복귀 시: @db.Text를 복원한다.
+  effect     String // 어떤 효과가 있었는지 (필수)
+  // [SQLITE] PostgreSQL 복귀 시: TimeBand enum으로 되돌린다. 허용값은 src/lib/domain-values.ts 참조.
+  timeBefore String?
+  // [SQLITE] PostgreSQL 복귀 시: TimeBand enum으로 되돌린다. 허용값은 src/lib/domain-values.ts 참조.
+  timeAfter  String?
+  createdAt  DateTime @default(now())
 
   @@index([agentId])
   @@index([userId])
@@ -195,31 +146,34 @@ model Save {
 }
 
 model Notification {
-  id          String           @id @default(cuid())
-  type        NotificationType
+  id          String   @id @default(cuid())
+  // [SQLITE] PostgreSQL 복귀 시: NotificationType enum으로 되돌린다. 허용값은 src/lib/domain-values.ts 참조.
+  type        String
   recipientId String
-  recipient   User             @relation("Recipient", fields: [recipientId], references: [id])
+  recipient   User     @relation("Recipient", fields: [recipientId], references: [id])
   actorId     String
-  actor       User             @relation("Actor", fields: [actorId], references: [id])
+  actor       User     @relation("Actor", fields: [actorId], references: [id])
   agentId     String?
-  agent       Agent?           @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  agent       Agent?   @relation(fields: [agentId], references: [id], onDelete: Cascade)
   reviewText  String?
-  read        Boolean          @default(false)
-  createdAt   DateTime         @default(now())
+  read        Boolean  @default(false)
+  createdAt   DateTime @default(now())
 
   @@index([recipientId])
 }
 
 model Report {
-  id         String        @id @default(cuid())
+  id         String    @id @default(cuid())
   reason     String
   reporterId String
-  reporter   User          @relation("Reporter", fields: [reporterId], references: [id])
+  reporter   User      @relation("Reporter", fields: [reporterId], references: [id])
   agentId    String
-  agent      Agent         @relation(fields: [agentId], references: [id], onDelete: Cascade)
-  status     ReportStatus  @default(pending)
-  action     ReportAction?
-  createdAt  DateTime      @default(now())
+  agent      Agent     @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  // [SQLITE] PostgreSQL 복귀 시: ReportStatus enum과 @default(pending)로 되돌린다. 허용값은 src/lib/domain-values.ts 참조.
+  status     String    @default("pending")
+  // [SQLITE] PostgreSQL 복귀 시: ReportAction enum으로 되돌린다. 허용값은 src/lib/domain-values.ts 참조.
+  action     String?
+  createdAt  DateTime  @default(now())
   resolvedAt DateTime?
 
   @@index([agentId])
@@ -229,17 +183,19 @@ model Report {
 // deptSnapshot = 행위 시점의 사용자 부서. 부서 이동·조직개편이 있어도 과거 확산 지표가
 // 흔들리지 않도록 User.dept를 조인하지 않고 그때 값을 그대로 박아 둔다.
 model AuditLog {
-  id           String      @id @default(cuid())
+  id           String   @id @default(cuid())
   userId       String
-  user         User        @relation(fields: [userId], references: [id])
+  user         User     @relation(fields: [userId], references: [id])
   deptSnapshot String
-  action       AuditAction
+  // [SQLITE] PostgreSQL 복귀 시: AuditAction enum으로 되돌린다. 허용값은 src/lib/domain-values.ts 참조.
+  action       String
   targetType   String?
   targetId     String? // agent_run/agent_copy의 경우 Agent.id — 팀 × 에이전트 확산 행렬의 원천
   targetLabel  String?
-  fileCount    Int         @default(0)
-  status       AuditStatus @default(success)
-  createdAt    DateTime    @default(now())
+  fileCount    Int      @default(0)
+  // [SQLITE] PostgreSQL 복귀 시: AuditStatus enum과 @default(success)로 되돌린다. 허용값은 src/lib/domain-values.ts 참조.
+  status       String   @default("success")
+  createdAt    DateTime @default(now())
 
   @@index([userId])
   @@index([createdAt])
@@ -270,7 +226,8 @@ model SubscriptionSnapshot {
   id     String @id @default(cuid())
   period String @unique // "2026-05"
   label  String // "26년 5월"
-  note   String @db.Text // 집계 기준·제외 대상·월 환산 방식
+  // [SQLITE] PostgreSQL 복귀 시: @db.Text를 복원한다.
+  note   String // 집계 기준·제외 대상·월 환산 방식
 
   totalUsers      Int
   totalAccounts   Int
@@ -285,7 +242,8 @@ model SubscriptionRow {
   id         String               @id @default(cuid())
   snapshotId String
   snapshot   SubscriptionSnapshot @relation(fields: [snapshotId], references: [id], onDelete: Cascade)
-  scope      SubScope
+  // [SQLITE] PostgreSQL 복귀 시: SubScope enum으로 되돌린다. 허용값은 src/lib/domain-values.ts 참조.
+  scope      String
   name       String // 부문/실 또는 팀 이름
   division   String? // scope=team일 때 소속 부문
   users      Int
