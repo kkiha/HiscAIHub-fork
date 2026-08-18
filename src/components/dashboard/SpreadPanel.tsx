@@ -1,4 +1,7 @@
+import { useState } from "react";
 import type { SpreadRow } from "@/lib/dashboard";
+
+const INITIAL_ROW_LIMIT = 10;
 
 /** 에이전트가 등록 팀 밖으로 얼마나 퍼졌는지. 퍼진 팀 수 → 타팀 비중 순으로 세운다. */
 export default function SpreadPanel({
@@ -10,15 +13,19 @@ export default function SpreadPanel({
   openId: string | null;
   onToggle: (id: string) => void;
 }) {
+  const [showAll, setShowAll] = useState(false);
+
   if (!spread.length) {
     return <div className="panel-sub">이 기간에는 실행된 에이전트가 없어요.</div>;
   }
 
   const rows = [...spread].sort((a, b) => b.teams - a.teams || b.outsidePct - a.outsidePct);
+  const hiddenCount = Math.max(0, rows.length - INITIAL_ROW_LIMIT);
+  const visibleRows = showAll ? rows : rows.slice(0, INITIAL_ROW_LIMIT);
 
   return (
     <>
-      {rows.map((s) => {
+      {visibleRows.map((s) => {
         const open = openId === s.id;
         const preview =
           s.byTeam
@@ -60,6 +67,16 @@ export default function SpreadPanel({
           </div>
         );
       })}
+      {hiddenCount > 0 && (
+        <button
+          type="button"
+          className="spread-more"
+          aria-expanded={showAll}
+          onClick={() => setShowAll((value) => !value)}
+        >
+          나머지 {hiddenCount}건 {showAll ? "접기" : "더보기"}
+        </button>
+      )}
     </>
   );
 }
