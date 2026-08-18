@@ -29,12 +29,17 @@ export type PublicDashboardData = {
     adoptions: number;
     activeUsers: number;
   }>;
-  categories: Array<{
-    category: string;
-    registrations: number;
-    adoptions: number;
-    uniqueUsers: number;
-  }>;
+  categories: {
+    totalCategoryCount: number;
+    registrationCategoryCount: number;
+    executionCategoryCount: number;
+    rows: Array<{
+      category: string;
+      registrations: number;
+      adoptions: number;
+      uniqueUsers: number;
+    }>;
+  };
   diffusion: {
     contents: Array<{
       contentId: string;

@@ -31,6 +31,7 @@
 .section-heading > span { display: inline-flex; align-items: center; justify-content: center; min-width: 25px; height: 20px; margin-top: 1px; border-radius: 10px; background: var(--org-light); color: var(--org-muted); font-size: 10px; font-weight: 600; }
 .section-heading h2 { font-size: 16px; font-weight: 600; }
 .section-heading p { margin-top: 3px; color: var(--text-3); font-size: 12px; line-height: 1.5; }
+.section-heading .category-coverage-summary { margin-top: 7px; color: var(--text-2); font-weight: 500; }
 
 .overview-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 13px; }
 .overview-grid article, .trend-chart, .category-bars, .dashboard-panel, .popular-list { background: var(--surface); border: 0.5px solid var(--border); border-radius: var(--radius-lg); }

@@ -731,7 +731,14 @@ export type CategoryStatsRow = {
   uniqueUsers: number;
 };
 
-export async function getCategoryStats(days: number, dept?: string): Promise<CategoryStatsRow[]> {
+export type CategoryStats = {
+  totalCategoryCount: number;
+  registrationCategoryCount: number;
+  executionCategoryCount: number;
+  rows: CategoryStatsRow[];
+};
+
+export async function getCategoryStats(days: number, dept?: string): Promise<CategoryStats> {
   requirePositiveInteger(days, "집계 기간");
   const since = daysAgo(days);
   const filterDept = normalizeDeptFilter(dept);
@@ -764,7 +771,7 @@ export async function getCategoryStats(days: number, dept?: string): Promise<Cat
   }
 
   const categoryOrder = new Map<string, number>(WORK_CATEGORIES.map((category, index) => [category, index]));
-  return Array.from(stats.entries())
+  const rows = Array.from(stats.entries())
     .map(([category, value]) => ({
       category,
       registrations: value.registrations,
@@ -772,6 +779,13 @@ export async function getCategoryStats(days: number, dept?: string): Promise<Cat
       uniqueUsers: value.users.size,
     }))
     .sort((a, b) => (categoryOrder.get(a.category) ?? Number.MAX_SAFE_INTEGER) - (categoryOrder.get(b.category) ?? Number.MAX_SAFE_INTEGER));
+
+  return {
+    totalCategoryCount: WORK_CATEGORIES.length,
+    registrationCategoryCount: rows.filter((row) => row.registrations > 0).length,
+    executionCategoryCount: rows.filter((row) => row.adoptions > 0).length,
+    rows,
+  };
 }
 
 export type ContentDiffusionRow = {

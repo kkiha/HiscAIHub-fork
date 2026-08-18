@@ -119,7 +119,7 @@ function TrendChart({ rows }: { rows: PublicDashboardData["trend"] }) {
   );
 }
 
-function CategoryBars({ rows }: { rows: PublicDashboardData["categories"] }) {
+function CategoryBars({ rows }: { rows: PublicDashboardData["categories"]["rows"] }) {
   const maxAdoptions = Math.max(1, ...rows.map((row) => row.adoptions));
   return (
     <div className="category-bars" aria-label="업무 카테고리별 가져가기 및 활성 사용자 분포">
@@ -254,8 +254,8 @@ export default function PublicDashboard() {
             </section>
 
             <section className="dashboard-section" id="categories">
-              <div className="section-heading"><span>03</span><div><h2>업무유형</h2><p>어떤 업무에서 콘텐츠가 등록되고 활용되는지 확인합니다.</p></div></div>
-              <CategoryBars rows={data.categories} />
+              <div className="section-heading"><span>03</span><div><h2>업무유형</h2><p>어떤 업무에서 콘텐츠가 등록되고 활용되는지 확인합니다.</p><p className="category-coverage-summary">등록 {data.categories.totalCategoryCount}개 중 {data.categories.registrationCategoryCount}개 업무유형 · 실행 {data.categories.totalCategoryCount}개 중 {data.categories.executionCategoryCount}개 업무유형</p></div></div>
+              <CategoryBars rows={data.categories.rows} />
             </section>
 
             <section className="dashboard-section" id="diffusion">
