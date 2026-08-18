@@ -5,11 +5,11 @@
 export const TOOL_ORDER = ["ChatGPT", "Gemini", "Claude", "Genspark", "기타"] as const;
 
 export const TOOL_COLORS: Record<string, string> = {
-  ChatGPT: "#1D8A63",
-  Gemini: "#4E79D4",
+  ChatGPT: "#5E8F7A",
+  Gemini: "#7C93BF",
   Claude: "#D96A28",
-  Genspark: "#9061C2",
-  기타: "#9AA0A6",
+  Genspark: "#9B87B0",
+  기타: "#B9B5AC",
 };
 
 // 팀·개인 랭킹 도넛/칩 색 램프. 6위까지 오렌지 계열, 그 뒤는 무채색.

@@ -44,8 +44,8 @@ export default function TeamRanking({
           <th>팀</th>
           <th>종합점수</th>
           <th>실행</th>
+          <th>활성 인원</th>
           <th>등록</th>
-          <th>인당 실행</th>
           <th>전기간 대비</th>
         </tr>
       </thead>
@@ -70,8 +70,8 @@ export default function TeamRanking({
                   <b>{r.score}</b>
                 </td>
                 <td>{r.runs}</td>
+                <td>{r.activeUsers}</td>
                 <td>{r.registrations}</td>
-                <td>{r.avgRunsPerUser.toFixed(1)}</td>
                 <td>
                   <DeltaCell value={r.delta} />
                 </td>
