@@ -373,6 +373,21 @@ async function main() {
     ["registration_warning", "고객 실명·계좌번호 등 민감정보는 에이전트 정의에 포함하지 마세요."],
     ["global_daily_call_limit", 5000],
     ["per_user_daily_call_limit", 100],
+    [
+      "division_headcount",
+      {
+        디지털부문: 138,
+        WM부문: 74,
+        홀세일부문: 58,
+        경영지원실: 46,
+        IB부문: 35,
+        상품전략실: 24,
+        리스크관리실: 27,
+        준법관리실: 19,
+        전략기획실: 22,
+        IT지원실: 16,
+      },
+    ],
   ];
   for (const [key, value] of settings) {
     await db.setting.upsert({
