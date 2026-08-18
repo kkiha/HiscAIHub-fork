@@ -1,6 +1,7 @@
 // design-reference/agent_hub_v3_mockup.html 의 목 데이터를 DB로 이관.
 // 데이터 값 자체는 seed-data.ts에 두고, 여기서는 적재 순서와 파생 로그 생성만 담당한다.
 import { PrismaClient } from "@prisma/client";
+import { fromStringList } from "../src/lib/json-list";
 import { AGENTS, CATEGORIES, SPREAD, SUBSCRIPTION, TEAM_MEMBER, USERS } from "./seed-data";
 
 const db = new PrismaClient();
@@ -64,13 +65,14 @@ async function main() {
         runType: a.runType,
         trigger: a.trigger,
         targetTask: a.targetTask,
-        tasks: a.tasks,
-        tools: a.tools,
+        // [SQLITE] PostgreSQL 복귀 시: Json 변환을 제거하고 배열을 직접 저장한다.
+        tasks: fromStringList(a.tasks),
+        tools: fromStringList(a.tools),
         effect: a.effect,
         timeBefore: a.timeBefore,
         timeAfter: a.timeAfter,
-        prerequisites: a.prerequisites,
-        howToUse: a.howToUse,
+        prerequisites: fromStringList(a.prerequisites),
+        howToUse: fromStringList(a.howToUse),
         instructions: a.instructions,
         linkUrl: a.linkUrl,
         authorId,

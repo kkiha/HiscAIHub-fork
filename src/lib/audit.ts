@@ -2,7 +2,9 @@
 //
 // deptSnapshot을 호출부마다 직접 넣게 두면 한 군데만 빠져도 부서 확산 대시보드에
 // 구멍이 생긴다(그 행은 어느 팀 실행인지 알 수 없게 된다). 그래서 기록은 전부 이 함수를 거친다.
-import type { Prisma, AuditAction, AuditStatus, User } from "@prisma/client";
+import type { Prisma, User } from "@prisma/client";
+// [SQLITE] PostgreSQL 복귀 시: AuditAction, AuditStatus를 @prisma/client에서 import한다.
+import type { AuditAction, AuditStatus } from "./domain-values";
 import { db } from "./db";
 
 type AuditInput = {

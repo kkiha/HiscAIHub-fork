@@ -1,8 +1,11 @@
 // 에이전트 도메인 데이터 계층 — DB ↔ 프런트 DTO 변환.
 // 목업(design-reference/agent_hub_v3_mockup.html)의 agents 배열 형태에 맞춘다.
 import { db } from "./db";
-import type { Prisma, RunType, TimeBand } from "@prisma/client";
-import { savedPct } from "./time-band";
+import type { Prisma } from "@prisma/client";
+// [SQLITE] PostgreSQL 복귀 시: RunType, TimeBand를 @prisma/client에서 import한다.
+import { isRunType, type RunType, type TimeBand } from "./domain-values";
+import { toStringList } from "./json-list";
+import { parseTimeBand, savedPct } from "./time-band";
 
 // 실제로 존재하지 않을 cuid — 비로그인/조회 전용 컨텍스트에서 saves를 빈 배열로 만들기 위한 sentinel.
 const NONE = "__none__";
@@ -78,6 +81,9 @@ export function serializeReview(
   r: LoadedAgent["reviews"][number],
   userId: string | null,
 ): ReviewDTO {
+  // [SQLITE] String 필드를 기존 TimeBand 허용값으로 좁힌다.
+  const timeBefore = parseTimeBand(r.timeBefore);
+  const timeAfter = parseTimeBand(r.timeAfter);
   return {
     id: r.id,
     name: r.user.name,
@@ -86,14 +92,19 @@ export function serializeReview(
     date: fmtDate(r.createdAt),
     useCase: r.useCase,
     effect: r.effect,
-    timeBefore: r.timeBefore,
-    timeAfter: r.timeAfter,
-    savedPct: savedPct(r.timeBefore, r.timeAfter),
+    timeBefore,
+    timeAfter,
+    savedPct: savedPct(timeBefore, timeAfter),
     mine: userId != null && r.userId === userId,
   };
 }
 
 function serializeAgent(a: LoadedAgent, userId: string | null): AgentDTO {
+  if (!isRunType(a.runType)) throw new Error(`잘못된 실행 방식입니다: ${a.runType}`);
+  // [SQLITE] String 필드를 기존 TimeBand 허용값으로 좁힌다.
+  const timeBefore = parseTimeBand(a.timeBefore);
+  const timeAfter = parseTimeBand(a.timeAfter);
+
   return {
     id: a.id,
     cat: a.category,
@@ -105,16 +116,17 @@ function serializeAgent(a: LoadedAgent, userId: string | null): AgentDTO {
     trigger: a.trigger,
 
     targetTask: a.targetTask,
-    tasks: a.tasks,
-    tools: a.tools,
+    // [SQLITE] PostgreSQL 복귀 시: Json 읽기 변환을 제거하고 배열을 직접 사용한다.
+    tasks: toStringList(a.tasks),
+    tools: toStringList(a.tools),
 
     effect: a.effect,
-    timeBefore: a.timeBefore,
-    timeAfter: a.timeAfter,
-    savedPct: savedPct(a.timeBefore, a.timeAfter),
+    timeBefore,
+    timeAfter,
+    savedPct: savedPct(timeBefore, timeAfter),
 
-    prerequisites: a.prerequisites,
-    howToUse: a.howToUse,
+    prerequisites: toStringList(a.prerequisites),
+    howToUse: toStringList(a.howToUse),
     instructions: a.instructions,
     linkUrl: a.linkUrl,
 

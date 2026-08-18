@@ -8,7 +8,7 @@
 //   - targetId     : Agent.id      → "어떤 에이전트가"
 // User.dept를 조인하지 않는 이유는 부서 이동·조직개편이 있어도 과거 수치가 흔들리지 않게 하기 위함.
 import { db } from "./db";
-import { savedMinutes } from "./time-band";
+import { parseTimeBand, savedMinutes } from "./time-band";
 
 // 기획서 8장 — 종합점수 가중치. 좋아요 제거 후 실행·등록 2축으로 재조정(2026-08-13 확정).
 export const SCORE_WEIGHTS = { runs: 60, registrations: 40 } as const;
@@ -302,7 +302,8 @@ export async function getDashboardData(period: Period): Promise<DashboardData> {
   let savedMin = 0;
   for (const [agentId, teams] of byAgentTeam) {
     const agent = agentById.get(agentId)!;
-    const perRun = savedMinutes(agent.timeBefore, agent.timeAfter);
+    // [SQLITE] String 필드를 기존 TimeBand 허용값으로 좁혀 집계한다.
+    const perRun = savedMinutes(parseTimeBand(agent.timeBefore), parseTimeBand(agent.timeAfter));
     if (!perRun) continue;
     savedMin += perRun * [...teams.values()].reduce((sum, n) => sum + n, 0);
   }

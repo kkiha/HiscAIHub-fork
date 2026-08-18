@@ -3,6 +3,7 @@
 // 대시보드·리더보드는 기획서 개정(2026-08-13)으로 전 임직원 공개 영역이 되어 lib/dashboard.ts로 옮겼다.
 // 여기 남은 것은 관리자만 하는 일(콘텐츠 관리·신고 처리·사용자 권한·사용량 비용·설정)뿐이다.
 import { db } from "./db";
+import { isContentStatus, type ContentStatus } from "./domain-values";
 
 function fmtDateTime(d: Date): string {
   const dt = `${String(d.getMonth() + 1).padStart(2, "0")}.${String(d.getDate()).padStart(2, "0")}`;
@@ -27,7 +28,16 @@ export type ContentRow = {
   official: boolean;
 };
 
-const STATUS_MAP = { published: "pub", hidden: "hidden", flagged: "flag" } as const;
+const STATUS_MAP: Record<ContentStatus, ContentRow["status"]> = {
+  published: "pub",
+  hidden: "hidden",
+  flagged: "flag",
+};
+
+function adminContentStatus(status: string): ContentRow["status"] {
+  // [SQLITE] String 필드가 기존 ContentStatus 허용값이 아니면 안전하게 신고 상태로 표시한다.
+  return isContentStatus(status) ? STATUS_MAP[status] : "flag";
+}
 
 export async function listContent(): Promise<ContentRow[]> {
   const agents = await db.agent.findMany({
@@ -40,7 +50,7 @@ export async function listContent(): Promise<ContentRow[]> {
     author: a.author.name,
     dept: a.author.dept,
     metric: `실행 ${a.runCount} · 후기 ${a._count.reviews}`,
-    status: STATUS_MAP[a.status],
+    status: adminContentStatus(a.status),
     official: a.official,
   }));
 }

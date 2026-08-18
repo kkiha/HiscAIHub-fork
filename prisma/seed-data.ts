@@ -1,6 +1,7 @@
 // design-reference/agent_hub_v3_mockup.html 의 목 데이터를 그대로 옮긴 시드 원본.
 // 화면 확인용 데이터라 목업과 수치가 어긋나면 안 되므로, 값은 손대지 않고 형태만 DB 스키마에 맞춘다.
-import type { RunType, TimeBand } from "@prisma/client";
+// [SQLITE] PostgreSQL 복귀 시: RunType, TimeBand를 @prisma/client에서 import한다.
+import type { RunType, TimeBand } from "../src/lib/domain-values";
 
 // 목업 shot() — 산출물 스크린샷 자리를 채우는 더미 SVG. 실제 이미지 업로드는 별도 과제.
 export function shot(kind: "table" | "chart" | "chat" | "doc", title: string): string {

@@ -2,7 +2,8 @@
 // 절감 시간을 등록자가 직접 추정하게 하면 사람마다 기준이 달라 집계가 안 되므로,
 // 전/후 구간만 받고 절감률·절감 시간은 대표값(MID)으로 시스템이 계산한다.
 // 서버(집계)와 클라이언트(폼·표시)가 같은 값을 써야 하므로 순수 모듈로 둔다.
-import type { TimeBand } from "@prisma/client";
+// [SQLITE] PostgreSQL 복귀 시: TimeBand를 @prisma/client에서 import한다.
+import type { TimeBand } from "./domain-values";
 
 export type TimeBandInfo = { value: TimeBand; label: string; mid: number };
 

@@ -1,7 +1,8 @@
 // 기획서 4.2 — 업무 카테고리 6종과 실행 방식 4종.
 // 등록 폼·생성 폼·필터가 같은 목록을 봐야 해서 한곳에 둔다.
 // (카테고리는 관리자 콘솔에서 편집 가능하지만, 폼 기본값은 이 목록을 쓴다.)
-import type { RunType } from "@prisma/client";
+// [SQLITE] PostgreSQL 복귀 시: RunType을 @prisma/client에서 import한다.
+import type { RunType } from "./domain-values";
 
 export const CATEGORIES = [
   "작성·요약",

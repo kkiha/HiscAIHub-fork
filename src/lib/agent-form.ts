@@ -1,15 +1,16 @@
 // 에이전트 등록·수정 폼 본문 파싱. 생성과 수정이 같은 규칙을 써야 해서 한곳에 둔다.
-import type { Prisma, RunType } from "@prisma/client";
+import type { Prisma } from "@prisma/client";
+import { isRunType } from "@/lib/domain-values";
+import { fromStringList } from "@/lib/json-list";
 import { parseTimeBand } from "@/lib/time-band";
-
-const RUN_TYPES: RunType[] = ["schedule", "event", "skill", "app"];
 
 function str(v: unknown): string {
   return typeof v === "string" ? v.trim() : "";
 }
 
 function strList(v: unknown): string[] {
-  return Array.isArray(v) ? v.map((x) => str(x)).filter(Boolean) : [];
+  // [SQLITE] PostgreSQL 복귀 시: Json 쓰기 변환을 제거하고 정리된 배열을 직접 반환한다.
+  return fromStringList(Array.isArray(v) ? v.map((x) => str(x)) : []);
 }
 
 function parseOutputs(v: unknown): { src: string; caption: string }[] {
@@ -32,7 +33,8 @@ export function parseAgentBody(body: unknown): { data: AgentFields } | { error: 
   const name = str(b.name);
   const instructions = str(b.instructions);
   const category = str(b.cat);
-  const runType = RUN_TYPES.find((t) => t === b.runType);
+  // [SQLITE] String 필드가 기존 RunType 허용값인지 저장 전에 검증한다.
+  const runType = isRunType(b.runType) ? b.runType : null;
   const targetTask = str(b.targetTask);
   const effect = str(b.effect);
   const trigger = str(b.trigger);
