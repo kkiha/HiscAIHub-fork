@@ -2,6 +2,7 @@
 // 플랫폼이 자동 수집하지 않고 매월 수동으로 스냅샷을 적재한다(운영 정책 7장).
 // 화면은 항상 가장 최근 스냅샷을 읽고, 과거 월은 추이 확인용으로 남겨 둔다.
 import { db } from "./db";
+import { getDivisionHeadcounts, rate } from "./headcount";
 
 // 도구 표기 순서·색은 클라이언트 컴포넌트도 쓰므로 db를 물지 않는 모듈에 두고 여기서 다시 내보낸다.
 export { TOOL_ORDER, TOOL_COLORS } from "./subscription-tools";
@@ -13,6 +14,8 @@ export type SubscriptionRowDTO = {
   costManwon: number;
   tools: Record<string, number>;
   accounts: number;
+  headcount: number | null;
+  adoptionRate: number | null;
 };
 
 export type SubscriptionDTO = {
@@ -36,14 +39,18 @@ function toolCounts(value: unknown): Record<string, number> {
 
 /** 가장 최근 스냅샷. 아직 한 번도 적재하지 않았으면 null — 화면은 안내 문구를 띄운다. */
 export async function getLatestSubscriptions(): Promise<SubscriptionDTO | null> {
-  const snapshot = await db.subscriptionSnapshot.findFirst({
-    orderBy: { period: "desc" },
-    include: { rows: { orderBy: { order: "asc" } } },
-  });
+  const [snapshot, headcounts] = await Promise.all([
+    db.subscriptionSnapshot.findFirst({
+      orderBy: { period: "desc" },
+      include: { rows: { orderBy: { order: "asc" } } },
+    }),
+    getDivisionHeadcounts(),
+  ]);
   if (!snapshot) return null;
 
   const toDTO = (r: (typeof snapshot.rows)[number]): SubscriptionRowDTO => {
     const tools = toolCounts(r.tools);
+    const headcount = r.scope === "division" ? (headcounts[r.name] ?? null) : null;
     return {
       name: r.name,
       division: r.division,
@@ -52,6 +59,9 @@ export async function getLatestSubscriptions(): Promise<SubscriptionDTO | null> 
       tools,
       // 계정 수 = 도구별 계정 합. 한 사람이 여러 도구를 구독하므로 users와 다르다.
       accounts: Object.values(tools).reduce((sum, n) => sum + n, 0),
+      headcount,
+      // 보급률의 분자는 계정 수가 아니라 실제 이용 인원이다.
+      adoptionRate: rate(r.users, headcount),
     };
   };
 

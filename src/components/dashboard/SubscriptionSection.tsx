@@ -5,20 +5,31 @@ function total(r: SubscriptionRowDTO): number {
   return TOOL_ORDER.reduce((sum, t) => sum + (r.tools[t] ?? 0), 0);
 }
 
-function SubRows({ rows, showDivision }: { rows: SubscriptionRowDTO[]; showDivision: boolean }) {
+function SubRows({
+  rows,
+  showDivision,
+  showHeadcount = false,
+}: {
+  rows: SubscriptionRowDTO[];
+  showDivision: boolean;
+  showHeadcount?: boolean;
+}) {
   const max = Math.max(...rows.map(total), 0) || 1;
 
   return (
     <>
       {rows.map((r) => {
         const sum = total(r);
+        const hasHeadcount = showHeadcount && r.headcount != null && r.adoptionRate != null;
         return (
           <div className="sub-row" key={r.name}>
             <div className="sub-label">
               <div className="nm">{r.name}</div>
               <div className="meta">
                 {showDivision && r.division ? `${r.division} · ` : ""}
-                이용 {r.users}명 · 인당 {r.users > 0 ? (sum / r.users).toFixed(1) : "0.0"}개 · 월{" "}
+                이용 {r.users}
+                {hasHeadcount ? ` / ${r.headcount}명 (${Math.round(r.adoptionRate!)}%)` : "명"} · 인당{" "}
+                {r.users > 0 ? (sum / r.users).toFixed(1) : "0.0"}개 · 월{" "}
                 {r.costManwon}만원
               </div>
             </div>
@@ -102,7 +113,7 @@ export default function SubscriptionSection({ data }: { data: SubscriptionDTO | 
         <div className="panel-head" style={{ marginBottom: 10 }}>
           부문 · 실별 도구 구성
         </div>
-        <SubRows rows={data.divisions} showDivision={false} />
+        <SubRows rows={data.divisions} showDivision={false} showHeadcount />
 
         <div className="panel-head" style={{ margin: "24px 0 10px" }}>
           팀별 도구 구성{" "}
