@@ -6,6 +6,7 @@ import type { SubscriptionDTO } from "@/lib/subscriptions";
 import KpiStrip from "./KpiStrip";
 import TeamShare from "./TeamShare";
 import TeamRanking from "./TeamRanking";
+import DivisionActivityPanel from "./DivisionActivityPanel";
 import SpreadPanel from "./SpreadPanel";
 import CategoryPanel from "./CategoryPanel";
 import SubscriptionSection from "./SubscriptionSection";
@@ -102,6 +103,17 @@ export default function Dashboard() {
                 spread={data.spread}
                 openTeam={openTeam}
                 onToggle={(t) => setOpenTeam(openTeam === t ? null : t)}
+              />
+            </div>
+
+            <div className="dash-panel" style={{ marginBottom: 14 }}>
+              <div className="panel-head">부문별 허브 활성률</div>
+              <div className="panel-sub">
+                선택 기간에 허브에서 에이전트를 실행한 인원을 부문 총원과 비교합니다.
+              </div>
+              <DivisionActivityPanel
+                rows={data.divisionActivity.rows}
+                averageRate={data.divisionActivity.averageRate}
               />
             </div>
 

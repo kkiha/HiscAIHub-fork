@@ -8,6 +8,7 @@
 //   - targetId     : Agent.id      → "어떤 에이전트가"
 // User.dept를 조인하지 않는 이유는 부서 이동·조직개편이 있어도 과거 수치가 흔들리지 않게 하기 위함.
 import { db } from "./db";
+import { getDivisionHeadcounts, rate } from "./headcount";
 import { parseTimeBand, savedMinutes } from "./time-band";
 
 // 기획서 8장 — 종합점수 가중치. 좋아요 제거 후 실행·등록 2축으로 재조정(2026-08-13 확정).
@@ -56,6 +57,13 @@ export type TeamRow = {
   delta: number | null;
 };
 
+export type DivisionActivityRow = {
+  division: string;
+  activeUsers: number;
+  headcount: number | null;
+  activeRate: number | null;
+};
+
 export type CategoryRow = { cat: string; runs: number; registrations: number };
 
 export type SpreadRow = {
@@ -74,16 +82,20 @@ export type DashboardData = {
   kpis: KpiCard[];
   savedHours: number;
   teams: TeamRow[];
+  divisionActivity: {
+    rows: DivisionActivityRow[];
+    averageRate: number | null;
+  };
   byCategory: CategoryRow[];
   spread: SpreadRow[];
 };
 
-type RunLog = { deptSnapshot: string; targetId: string | null };
+type RunLog = { userId: string; deptSnapshot: string; targetId: string | null };
 
 async function runLogsBetween(gte: Date, lt?: Date): Promise<RunLog[]> {
   return db.auditLog.findMany({
     where: { action: "agent_run", createdAt: lt ? { gte, lt } : { gte } },
-    select: { deptSnapshot: true, targetId: true },
+    select: { userId: true, deptSnapshot: true, targetId: true },
   });
 }
 
@@ -93,22 +105,42 @@ function countBy<T, K>(rows: T[], key: (row: T) => K): Map<K, number> {
   return m;
 }
 
-/** 팀 이름 → 소속 부문. 구독현황 스냅샷이 유일한 조직도 소스라 거기서 끌어온다. */
-async function divisionLookup(): Promise<Map<string, string>> {
+/** 팀 이름 → 소속 부문과 전체 부문 목록. 구독 스냅샷을 조직도 원천으로 쓴다. */
+async function organizationLookup(): Promise<{
+  teamDivisions: Map<string, string>;
+  divisionNames: string[];
+}> {
   const snapshot = await db.subscriptionSnapshot.findFirst({ orderBy: { period: "desc" } });
-  if (!snapshot) return new Map();
+  if (!snapshot) return { teamDivisions: new Map(), divisionNames: [] };
   const rows = await db.subscriptionRow.findMany({
-    where: { snapshotId: snapshot.id, scope: "team" },
-    select: { name: true, division: true },
+    where: { snapshotId: snapshot.id },
+    select: { scope: true, name: true, division: true },
   });
-  return new Map(rows.flatMap((r) => (r.division ? [[r.name, r.division] as const] : [])));
+  return {
+    teamDivisions: new Map(
+      rows.flatMap((row) =>
+        row.scope === "team" && row.division ? [[row.name, row.division] as const] : [],
+      ),
+    ),
+    divisionNames: rows.filter((row) => row.scope === "division").map((row) => row.name),
+  };
 }
 
 export async function getDashboardData(period: Period): Promise<DashboardData> {
   const since = daysAgo(period);
   const prevSince = daysAgo(period * 2);
 
-  const [runs, prevRuns, agents, newAgents, prevNewAgents, activity, prevActivity, divisions] =
+  const [
+    runs,
+    prevRuns,
+    agents,
+    newAgents,
+    prevNewAgents,
+    activity,
+    prevActivity,
+    organization,
+    headcounts,
+  ] =
     await Promise.all([
       runLogsBetween(since),
       runLogsBetween(prevSince, since),
@@ -141,7 +173,8 @@ export async function getDashboardData(period: Period): Promise<DashboardData> {
         distinct: ["userId"],
         select: { userId: true },
       }),
-      divisionLookup(),
+      organizationLookup(),
+      getDivisionHeadcounts(),
     ]);
 
   const agentById = new Map(agents.map((a) => [a.id, a]));
@@ -209,7 +242,7 @@ export async function getDashboardData(period: Period): Promise<DashboardData> {
       );
       return {
         team,
-        division: divisions.get(team) ?? null,
+        division: organization.teamDivisions.get(team) ?? null,
         runs: teamRuns,
         registrations: teamRegs,
         activeUsers: users,
@@ -219,6 +252,53 @@ export async function getDashboardData(period: Period): Promise<DashboardData> {
       };
     })
     .sort((a, b) => b.score - a.score);
+
+  // ---------- 부문별 허브 활성률 ----------
+  // 팀별 활성 인원을 더하지 않고 사용자 ID 집합을 부문별로 합쳐 중복을 제거한다.
+  const activeIdsByDivision = new Map<string, Set<string>>();
+  for (const run of runs) {
+    const division = organization.teamDivisions.get(run.deptSnapshot);
+    if (!division) continue;
+    const ids = activeIdsByDivision.get(division) ?? new Set<string>();
+    ids.add(run.userId);
+    activeIdsByDivision.set(division, ids);
+  }
+
+  const divisionNames = new Set([...organization.divisionNames, ...Object.keys(headcounts)]);
+  const divisionActivityRows: DivisionActivityRow[] = [...divisionNames]
+    .map((division) => {
+      const activeUsers = activeIdsByDivision.get(division)?.size ?? 0;
+      const headcount = headcounts[division] ?? null;
+      return {
+        division,
+        activeUsers,
+        headcount,
+        activeRate: rate(activeUsers, headcount),
+      };
+    })
+    .sort((a, b) => {
+      if (a.activeRate == null) return b.activeRate == null ? 0 : 1;
+      if (b.activeRate == null) return -1;
+      return b.activeRate - a.activeRate || b.activeUsers - a.activeUsers;
+    });
+
+  // 전사 평균도 총원이 등록된 부문의 사용자 ID를 다시 합쳐 계산한다.
+  // 한 사용자가 여러 팀에서 실행했더라도 전사 분자에는 한 번만 들어간다.
+  const companyActiveIds = new Set<string>();
+  for (const row of divisionActivityRows) {
+    if (row.headcount == null || row.headcount <= 0) continue;
+    for (const userId of activeIdsByDivision.get(row.division) ?? []) {
+      companyActiveIds.add(userId);
+    }
+  }
+  const companyHeadcount = divisionActivityRows.reduce(
+    (sum, row) => sum + (row.headcount ?? 0),
+    0,
+  );
+  const divisionActivity = {
+    rows: divisionActivityRows,
+    averageRate: rate(companyActiveIds.size, companyHeadcount || null),
+  };
 
   // ---------- 카테고리 ----------
   const runsByCategory = new Map<string, number>();
@@ -300,6 +380,7 @@ export async function getDashboardData(period: Period): Promise<DashboardData> {
     kpis,
     savedHours: Math.round(savedMin / 60),
     teams,
+    divisionActivity,
     byCategory,
     spread,
   };
