@@ -3,6 +3,7 @@
 /* 관리자 콘솔 — design-reference/prompthub-admin.html 이식. 9단계: 전 섹션 실 DB 연동. */
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { adminLogout } from "@/app/actions/auth";
 
 const ICON: Record<string, string> = {
@@ -161,7 +162,7 @@ export default function AdminConsole() {
           ))}
         </nav>
         <div className="side-foot">
-          <a href="/"><Ic name="back" /> 서비스로 돌아가기</a>
+          <Link href="/"><Ic name="back" /> 서비스로 돌아가기</Link>
           <form action={adminLogout}>
             <button type="submit"><Ic name="x" /> 로그아웃</button>
           </form>
