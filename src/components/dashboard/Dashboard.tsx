@@ -66,8 +66,9 @@ export default function Dashboard() {
           <div>
             <h3>팀 · 임직원 활용도</h3>
             <p>
-              허브에서 발생한 활동입니다. 종합점수는 실행 60 · 등록 40 가중치로 계산하고 기간 내
-              최고값 기준으로 정규화합니다.
+              허브에서 발생한 활동입니다. 타팀까지 퍼진 에이전트는 게시된 전체 에이전트 중, 선택
+              기간에 등록 팀이 아닌 팀에서 1회 이상 실행된 건수입니다. 에이전트당 평균 실행 팀은
+              선택 기간에 1회 이상 실행된 에이전트만 대상으로 합니다.
             </p>
           </div>
           <div className="range-toggle">
@@ -90,8 +91,19 @@ export default function Dashboard() {
             <KpiStrip kpis={data.kpis} />
 
             <div className="dash-panel" style={{ marginBottom: 14 }}>
+              <div className="panel-head">부문별 허브 활성률</div>
+              <div className="panel-sub">
+                선택 기간에 허브에서 에이전트를 실행한 인원을 부문 총원과 비교합니다.
+              </div>
+              <DivisionActivityPanel
+                rows={data.divisionActivity.rows}
+                averageRate={data.divisionActivity.averageRate}
+              />
+            </div>
+
+            <div className="dash-panel" style={{ marginBottom: 14 }}>
               <div className="panel-head">팀별 활동 비중</div>
-              <div className="panel-sub">전체 활동(종합점수 합) 중 팀별 비중이에요.</div>
+              <div className="panel-sub">전체 실행 중 팀별 비중이에요.</div>
               <TeamShare teams={data.teams} />
             </div>
 
@@ -103,17 +115,6 @@ export default function Dashboard() {
                 spread={data.spread}
                 openTeam={openTeam}
                 onToggle={(t) => setOpenTeam(openTeam === t ? null : t)}
-              />
-            </div>
-
-            <div className="dash-panel" style={{ marginBottom: 14 }}>
-              <div className="panel-head">부문별 허브 활성률</div>
-              <div className="panel-sub">
-                선택 기간에 허브에서 에이전트를 실행한 인원을 부문 총원과 비교합니다.
-              </div>
-              <DivisionActivityPanel
-                rows={data.divisionActivity.rows}
-                averageRate={data.divisionActivity.averageRate}
               />
             </div>
 

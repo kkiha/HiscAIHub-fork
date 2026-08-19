@@ -11,9 +11,6 @@ import { db } from "./db";
 import { getDivisionHeadcounts, rate } from "./headcount";
 import { parseTimeBand, savedMinutes } from "./time-band";
 
-// 기획서 8장 — 종합점수 가중치. 좋아요 제거 후 실행·등록 2축으로 재조정(2026-08-13 확정).
-export const SCORE_WEIGHTS = { runs: 60, registrations: 40 } as const;
-
 export type Period = 7 | 30 | 90;
 
 export function normalizePeriod(v: unknown): Period {
@@ -32,11 +29,6 @@ function pctDelta(current: number, previous: number): number | null {
   return Math.round(((current - previous) / previous) * 100);
 }
 
-/** v/max를 가중치로 환산. max가 0이면 비교 대상이 없다는 뜻이므로 0점. */
-function weighted(v: number, max: number, weight: number): number {
-  return max > 0 ? (v / max) * weight : 0;
-}
-
 export type KpiCard = {
   key: string;
   label: string;
@@ -53,7 +45,6 @@ export type TeamRow = {
   registrations: number;
   activeUsers: number;
   avgRunsPerUser: number;
-  score: number;
   delta: number | null;
 };
 
@@ -105,6 +96,59 @@ function countBy<T, K>(rows: T[], key: (row: T) => K): Map<K, number> {
   return m;
 }
 
+/** 실행 로그를 에이전트 × 실행 팀 행렬로 묶는다. 게시된 에이전트의 로그만 집계한다. */
+function agentTeamMatrix(
+  runs: RunLog[],
+  publishedAgentIds: Set<string>,
+): Map<string, Map<string, number>> {
+  const matrix = new Map<string, Map<string, number>>();
+  for (const log of runs) {
+    if (!log.targetId || !publishedAgentIds.has(log.targetId)) continue;
+    const teams = matrix.get(log.targetId) ?? new Map<string, number>();
+    teams.set(log.deptSnapshot, (teams.get(log.deptSnapshot) ?? 0) + 1);
+    matrix.set(log.targetId, teams);
+  }
+  return matrix;
+}
+
+type SpreadAgent = {
+  id: string;
+  name: string;
+  category: string;
+  author: { dept: string };
+};
+
+/** 에이전트 × 팀 행렬을 화면과 KPI가 함께 쓰는 확산 행으로 변환한다. */
+function spreadRows(
+  matrix: Map<string, Map<string, number>>,
+  agentById: ReadonlyMap<string, SpreadAgent>,
+): SpreadRow[] {
+  const rows: SpreadRow[] = [];
+  for (const [agentId, teams] of matrix) {
+    const agent = agentById.get(agentId);
+    if (!agent) continue;
+    const ownerTeam = agent.author.dept;
+    const entries = [...teams.entries()].sort((a, b) => b[1] - a[1]);
+    const total = entries.reduce((sum, [, n]) => sum + n, 0);
+    const own = teams.get(ownerTeam) ?? 0;
+    rows.push({
+      id: agentId,
+      name: agent.name,
+      cat: agent.category,
+      ownerTeam,
+      total,
+      teams: entries.length,
+      outsidePct: total ? Math.round(((total - own) / total) * 100) : 0,
+      byTeam: entries.map(([team, n]) => ({ team, runs: n, owner: team === ownerTeam })),
+    });
+  }
+  return rows.sort((a, b) => b.total - a.total);
+}
+
+function averageTeams(rows: SpreadRow[]): number {
+  return rows.length ? rows.reduce((sum, row) => sum + row.teams, 0) / rows.length : 0;
+}
+
 /** 팀 이름 → 소속 부문과 전체 부문 목록. 구독 스냅샷을 조직도 원천으로 쓴다. */
 async function organizationLookup(): Promise<{
   teamDivisions: Map<string, string>;
@@ -150,6 +194,7 @@ export async function getDashboardData(period: Period): Promise<DashboardData> {
           id: true,
           name: true,
           category: true,
+          createdAt: true,
           timeBefore: true,
           timeAfter: true,
           author: { select: { dept: true } },
@@ -178,41 +223,20 @@ export async function getDashboardData(period: Period): Promise<DashboardData> {
     ]);
 
   const agentById = new Map(agents.map((a) => [a.id, a]));
+  const publishedAgentIds = new Set(agentById.keys());
+  const prevPublishedAgents = agents.filter((agent) => agent.createdAt < since);
+  const prevPublishedAgentIds = new Set(prevPublishedAgents.map((agent) => agent.id));
 
   // ---------- 확산: 에이전트 × 팀 실행 행렬 ----------
-  const byAgentTeam = new Map<string, Map<string, number>>();
-  for (const log of runs) {
-    if (!log.targetId || !agentById.has(log.targetId)) continue; // 삭제된 에이전트의 과거 로그
-    const teams = byAgentTeam.get(log.targetId) ?? new Map<string, number>();
-    teams.set(log.deptSnapshot, (teams.get(log.deptSnapshot) ?? 0) + 1);
-    byAgentTeam.set(log.targetId, teams);
-  }
-
-  const spread: SpreadRow[] = [];
-  for (const [agentId, teams] of byAgentTeam) {
-    const agent = agentById.get(agentId)!;
-    const ownerTeam = agent.author.dept;
-    const entries = [...teams.entries()].sort((a, b) => b[1] - a[1]);
-    const total = entries.reduce((sum, [, n]) => sum + n, 0);
-    const own = teams.get(ownerTeam) ?? 0;
-    spread.push({
-      id: agentId,
-      name: agent.name,
-      cat: agent.category,
-      ownerTeam,
-      total,
-      teams: entries.length,
-      outsidePct: total ? Math.round(((total - own) / total) * 100) : 0,
-      byTeam: entries.map(([team, n]) => ({ team, runs: n, owner: team === ownerTeam })),
-    });
-  }
-  spread.sort((a, b) => b.total - a.total);
+  const byAgentTeam = agentTeamMatrix(runs, publishedAgentIds);
+  const prevByAgentTeam = agentTeamMatrix(prevRuns, prevPublishedAgentIds);
+  const spread = spreadRows(byAgentTeam, agentById);
+  const prevSpread = spreadRows(prevByAgentTeam, agentById);
 
   // ---------- 팀 리더보드 ----------
   const runsByTeam = countBy(runs, (r) => r.deptSnapshot);
   const prevRunsByTeam = countBy(prevRuns, (r) => r.deptSnapshot);
   const regsByTeam = countBy(newAgents, (a) => a.author.dept);
-  const prevRegsByTeam = countBy(prevNewAgents, (a) => a.author.dept);
 
   const activeByTeam = new Map<string, Set<string>>();
   for (const a of activity) {
@@ -222,24 +246,12 @@ export async function getDashboardData(period: Period): Promise<DashboardData> {
   }
 
   const teamNames = new Set([...runsByTeam.keys(), ...regsByTeam.keys(), ...activeByTeam.keys()]);
-  const maxTeamRuns = Math.max(0, ...runsByTeam.values());
-  const maxTeamRegs = Math.max(0, ...regsByTeam.values());
-  const maxPrevTeamRuns = Math.max(0, ...prevRunsByTeam.values());
-  const maxPrevTeamRegs = Math.max(0, ...prevRegsByTeam.values());
 
   const teams: TeamRow[] = [...teamNames]
     .map((team) => {
       const teamRuns = runsByTeam.get(team) ?? 0;
       const teamRegs = regsByTeam.get(team) ?? 0;
       const users = activeByTeam.get(team)?.size ?? 0;
-      const score = Math.round(
-        weighted(teamRuns, maxTeamRuns, SCORE_WEIGHTS.runs) +
-          weighted(teamRegs, maxTeamRegs, SCORE_WEIGHTS.registrations),
-      );
-      const prevScore = Math.round(
-        weighted(prevRunsByTeam.get(team) ?? 0, maxPrevTeamRuns, SCORE_WEIGHTS.runs) +
-          weighted(prevRegsByTeam.get(team) ?? 0, maxPrevTeamRegs, SCORE_WEIGHTS.registrations),
-      );
       return {
         team,
         division: organization.teamDivisions.get(team) ?? null,
@@ -247,11 +259,10 @@ export async function getDashboardData(period: Period): Promise<DashboardData> {
         registrations: teamRegs,
         activeUsers: users,
         avgRunsPerUser: users ? Math.round((teamRuns / users) * 10) / 10 : 0,
-        score,
-        delta: pctDelta(score, prevScore),
+        delta: pctDelta(teamRuns, prevRunsByTeam.get(team) ?? 0),
       };
     })
-    .sort((a, b) => b.score - a.score);
+    .sort((a, b) => b.runs - a.runs);
 
   // ---------- 부문별 허브 활성률 ----------
   // 팀별 활성 인원을 더하지 않고 사용자 ID 집합을 부문별로 합쳐 중복을 제거한다.
@@ -335,6 +346,13 @@ export async function getDashboardData(period: Period): Promise<DashboardData> {
   // ---------- KPI ----------
   const totalRuns = runs.length;
   const spreadOutside = spread.filter((s) => s.outsidePct > 0).length;
+  const prevSpreadOutside = prevSpread.filter((s) => s.outsidePct > 0).length;
+  const spreadOutsideRate = agents.length ? spreadOutside / agents.length : 0;
+  const prevSpreadOutsideRate = prevPublishedAgents.length
+    ? prevSpreadOutside / prevPublishedAgents.length
+    : 0;
+  const avgTeams = averageTeams(spread);
+  const prevAvgTeams = averageTeams(prevSpread);
 
   const kpis: KpiCard[] = [
     {
@@ -369,8 +387,16 @@ export async function getDashboardData(period: Period): Promise<DashboardData> {
       key: "spreadOutside",
       label: "타팀까지 퍼진 에이전트",
       value: String(spreadOutside),
-      unit: `/ ${spread.length}건`,
-      delta: null,
+      unit: `/ ${agents.length}건`,
+      delta: pctDelta(spreadOutsideRate, prevSpreadOutsideRate),
+      spread: true,
+    },
+    {
+      key: "avgTeams",
+      label: "에이전트당 평균 실행 팀",
+      value: avgTeams.toFixed(1),
+      unit: "팀",
+      delta: pctDelta(avgTeams, prevAvgTeams),
       spread: true,
     },
   ];
