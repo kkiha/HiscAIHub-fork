@@ -1,16 +1,37 @@
-// 기획서 4.2 — 업무 카테고리 6종과 실행 방식 4종.
+// 기획서 4.2 — 업무 카테고리 5종과 실행 방식 4종.
 // 등록 폼·생성 폼·필터가 같은 목록을 봐야 해서 한곳에 둔다.
 // (카테고리는 관리자 콘솔에서 편집 가능하지만, 폼 기본값은 이 목록을 쓴다.)
 import type { RunType } from "@prisma/client";
 
-export const CATEGORIES = [
-  "작성·요약",
-  "조사·리서치",
-  "분석",
-  "번역·검토",
-  "기획·아이디어",
-  "자동화·개발",
+export const CATEGORY_GUIDE = [
+  {
+    value: "조사·수집",
+    desc: "흩어진 정보를 모아 가져옵니다",
+    examples: "경쟁사 수수료 모니터, 실적발표 스캔",
+  },
+  {
+    value: "작성·요약",
+    desc: "문서·답변을 만들거나 줄입니다",
+    examples: "회의록 정리, 심사자료 초안, 민원 1차 답변",
+  },
+  {
+    value: "번역·교정",
+    desc: "언어나 문체를 다듬습니다",
+    examples: "영문 공시 번역, 보고서 문체 정리",
+  },
+  {
+    value: "분석·진단",
+    desc: "데이터에서 원인이나 패턴을 찾습니다",
+    examples: "이탈 점검, 예산 이상치, 장애 로그 진단",
+  },
+  {
+    value: "점검·대조",
+    desc: "기준과 맞는지 확인합니다",
+    examples: "약관 조항 대조, 마감 데이터 정합성",
+  },
 ] as const;
+
+export const CATEGORIES = CATEGORY_GUIDE.map((category) => category.value);
 
 export const RUN_TYPES: { value: RunType; label: string; desc: string }[] = [
   { value: "schedule", label: "자동 실행 (스케줄)", desc: "정해진 시각에 스스로 돌고 결과만 받아봅니다" },

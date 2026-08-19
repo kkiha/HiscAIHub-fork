@@ -8,10 +8,8 @@
 //   - targetId     : Agent.id      → "어떤 에이전트가"
 // User.dept를 조인하지 않는 이유는 부서 이동·조직개편이 있어도 과거 수치가 흔들리지 않게 하기 위함.
 import { db } from "./db";
+import { getDivisionHeadcounts, rate } from "./headcount";
 import { savedMinutes } from "./time-band";
-
-// 기획서 8장 — 종합점수 가중치. 좋아요 제거 후 실행·등록 2축으로 재조정(2026-08-13 확정).
-export const SCORE_WEIGHTS = { runs: 60, registrations: 40 } as const;
 
 export type Period = 7 | 30 | 90;
 
@@ -31,11 +29,6 @@ function pctDelta(current: number, previous: number): number | null {
   return Math.round(((current - previous) / previous) * 100);
 }
 
-/** v/max를 가중치로 환산. max가 0이면 비교 대상이 없다는 뜻이므로 0점. */
-function weighted(v: number, max: number, weight: number): number {
-  return max > 0 ? (v / max) * weight : 0;
-}
-
 export type KpiCard = {
   key: string;
   label: string;
@@ -52,7 +45,6 @@ export type TeamRow = {
   registrations: number;
   activeUsers: number;
   avgRunsPerUser: number;
-  score: number;
   delta: number | null;
 };
 
@@ -96,9 +88,20 @@ export type DashboardData = {
   individuals: PersonRow[];
   byCategory: CategoryRow[];
   spread: SpreadRow[];
+  divisionActivity: {
+    rows: DivisionActivityRow[];
+    averageRate: number | null;
+  };
 };
 
 type RunLog = { userId: string; deptSnapshot: string; targetId: string | null };
+
+type SpreadAgent = {
+  id: string;
+  name: string;
+  category: string;
+  author: { dept: string };
+};
 
 async function runLogsBetween(gte: Date, lt?: Date): Promise<RunLog[]> {
   return db.auditLog.findMany({
@@ -113,22 +116,77 @@ function countBy<T, K>(rows: T[], key: (row: T) => K): Map<K, number> {
   return m;
 }
 
-/** 팀 이름 → 소속 부문. 구독현황 스냅샷이 유일한 조직도 소스라 거기서 끌어온다. */
-async function divisionLookup(): Promise<Map<string, string>> {
+/** 구독현황 스냅샷이 유일한 조직도 소스라 팀-부문 관계와 부문 목록을 함께 가져온다. */
+async function organizationLookup(): Promise<{
+  teamDivisions: Map<string, string>;
+  divisionNames: string[];
+}> {
   const snapshot = await db.subscriptionSnapshot.findFirst({ orderBy: { period: "desc" } });
-  if (!snapshot) return new Map();
+  if (!snapshot) return { teamDivisions: new Map(), divisionNames: [] };
   const rows = await db.subscriptionRow.findMany({
-    where: { snapshotId: snapshot.id, scope: "team" },
-    select: { name: true, division: true },
+    where: { snapshotId: snapshot.id },
+    select: { scope: true, name: true, division: true },
+    orderBy: { order: "asc" },
   });
-  return new Map(rows.flatMap((r) => (r.division ? [[r.name, r.division] as const] : [])));
+  return {
+    teamDivisions: new Map(
+      rows.flatMap((row) =>
+        row.scope === "team" && row.division ? [[row.name, row.division] as const] : [],
+      ),
+    ),
+    divisionNames: rows.filter((row) => row.scope === "division").map((row) => row.name),
+  };
+}
+
+/** 같은 에이전트가 어느 팀에서 몇 번 실행됐는지 현재·직전 기간에 공통으로 계산한다. */
+function buildSpread(
+  runs: RunLog[],
+  agentById: ReadonlyMap<string, SpreadAgent>,
+): { matrix: Map<string, Map<string, number>>; rows: SpreadRow[] } {
+  const matrix = new Map<string, Map<string, number>>();
+  for (const log of runs) {
+    if (!log.targetId || !agentById.has(log.targetId)) continue;
+    const teams = matrix.get(log.targetId) ?? new Map<string, number>();
+    teams.set(log.deptSnapshot, (teams.get(log.deptSnapshot) ?? 0) + 1);
+    matrix.set(log.targetId, teams);
+  }
+
+  const rows: SpreadRow[] = [];
+  for (const [agentId, teams] of matrix) {
+    const agent = agentById.get(agentId)!;
+    const ownerTeam = agent.author.dept;
+    const entries = [...teams.entries()].sort((a, b) => b[1] - a[1]);
+    const total = entries.reduce((sum, [, count]) => sum + count, 0);
+    const own = teams.get(ownerTeam) ?? 0;
+    rows.push({
+      id: agentId,
+      name: agent.name,
+      cat: agent.category,
+      ownerTeam,
+      total,
+      teams: entries.length,
+      outsidePct: total ? Math.round(((total - own) / total) * 100) : 0,
+      byTeam: entries.map(([team, count]) => ({
+        team,
+        runs: count,
+        owner: team === ownerTeam,
+      })),
+    });
+  }
+
+  rows.sort((a, b) => b.total - a.total);
+  return { matrix, rows };
+}
+
+function averageTeams(rows: SpreadRow[]): number {
+  return rows.length ? rows.reduce((sum, row) => sum + row.teams, 0) / rows.length : 0;
 }
 
 export async function getDashboardData(period: Period): Promise<DashboardData> {
   const since = daysAgo(period);
   const prevSince = daysAgo(period * 2);
 
-  const [runs, prevRuns, agents, newAgents, prevNewAgents, activity, prevActivity, divisions] =
+  const [runs, prevRuns, agents, newAgents, prevNewAgents, organization, divisionHeadcounts] =
     await Promise.all([
       runLogsBetween(since),
       runLogsBetween(prevSince, since),
@@ -140,105 +198,95 @@ export async function getDashboardData(period: Period): Promise<DashboardData> {
           category: true,
           timeBefore: true,
           timeAfter: true,
+          createdAt: true,
           author: { select: { id: true, name: true, dept: true } },
         },
       }),
       db.agent.findMany({
-        where: { createdAt: { gte: since } },
+        where: { status: "published", createdAt: { gte: since } },
         select: { category: true, author: { select: { id: true, name: true, dept: true } } },
       }),
       db.agent.findMany({
-        where: { createdAt: { gte: prevSince, lt: since } },
-        select: { author: { select: { id: true, dept: true } } },
+        where: { status: "published", createdAt: { gte: prevSince, lt: since } },
+        select: { id: true },
       }),
-      db.auditLog.findMany({
-        where: { createdAt: { gte: since } },
-        distinct: ["userId"],
-        select: { userId: true, deptSnapshot: true },
-      }),
-      db.auditLog.findMany({
-        where: { createdAt: { gte: prevSince, lt: since } },
-        distinct: ["userId"],
-        select: { userId: true },
-      }),
-      divisionLookup(),
+      organizationLookup(),
+      getDivisionHeadcounts(),
     ]);
 
   const agentById = new Map(agents.map((a) => [a.id, a]));
+  const prevAgentById = new Map(
+    agents.filter((agent) => agent.createdAt < since).map((agent) => [agent.id, agent]),
+  );
 
   // ---------- 확산: 에이전트 × 팀 실행 행렬 ----------
-  const byAgentTeam = new Map<string, Map<string, number>>();
-  for (const log of runs) {
-    if (!log.targetId || !agentById.has(log.targetId)) continue; // 삭제된 에이전트의 과거 로그
-    const teams = byAgentTeam.get(log.targetId) ?? new Map<string, number>();
-    teams.set(log.deptSnapshot, (teams.get(log.deptSnapshot) ?? 0) + 1);
-    byAgentTeam.set(log.targetId, teams);
-  }
-
-  const spread: SpreadRow[] = [];
-  for (const [agentId, teams] of byAgentTeam) {
-    const agent = agentById.get(agentId)!;
-    const ownerTeam = agent.author.dept;
-    const entries = [...teams.entries()].sort((a, b) => b[1] - a[1]);
-    const total = entries.reduce((sum, [, n]) => sum + n, 0);
-    const own = teams.get(ownerTeam) ?? 0;
-    spread.push({
-      id: agentId,
-      name: agent.name,
-      cat: agent.category,
-      ownerTeam,
-      total,
-      teams: entries.length,
-      outsidePct: total ? Math.round(((total - own) / total) * 100) : 0,
-      byTeam: entries.map(([team, n]) => ({ team, runs: n, owner: team === ownerTeam })),
-    });
-  }
-  spread.sort((a, b) => b.total - a.total);
+  const { matrix: byAgentTeam, rows: spread } = buildSpread(runs, agentById);
+  const { rows: prevSpread } = buildSpread(prevRuns, prevAgentById);
 
   // ---------- 팀 리더보드 ----------
   const runsByTeam = countBy(runs, (r) => r.deptSnapshot);
   const prevRunsByTeam = countBy(prevRuns, (r) => r.deptSnapshot);
   const regsByTeam = countBy(newAgents, (a) => a.author.dept);
-  const prevRegsByTeam = countBy(prevNewAgents, (a) => a.author.dept);
 
   const activeByTeam = new Map<string, Set<string>>();
-  for (const a of activity) {
-    const set = activeByTeam.get(a.deptSnapshot) ?? new Set<string>();
-    set.add(a.userId);
-    activeByTeam.set(a.deptSnapshot, set);
+  for (const run of runs) {
+    const set = activeByTeam.get(run.deptSnapshot) ?? new Set<string>();
+    set.add(run.userId);
+    activeByTeam.set(run.deptSnapshot, set);
   }
+  const activeUserIds = new Set(runs.map((run) => run.userId));
+  const prevActiveUserIds = new Set(prevRuns.map((run) => run.userId));
 
   const teamNames = new Set([...runsByTeam.keys(), ...regsByTeam.keys(), ...activeByTeam.keys()]);
-  const maxTeamRuns = Math.max(0, ...runsByTeam.values());
-  const maxTeamRegs = Math.max(0, ...regsByTeam.values());
-  const maxPrevTeamRuns = Math.max(0, ...prevRunsByTeam.values());
-  const maxPrevTeamRegs = Math.max(0, ...prevRegsByTeam.values());
 
   const teams: TeamRow[] = [...teamNames]
     .map((team) => {
       const teamRuns = runsByTeam.get(team) ?? 0;
       const teamRegs = regsByTeam.get(team) ?? 0;
       const users = activeByTeam.get(team)?.size ?? 0;
-      const score = Math.round(
-        weighted(teamRuns, maxTeamRuns, SCORE_WEIGHTS.runs) +
-          weighted(teamRegs, maxTeamRegs, SCORE_WEIGHTS.registrations),
-      );
-      const prevScore = Math.round(
-        weighted(prevRunsByTeam.get(team) ?? 0, maxPrevTeamRuns, SCORE_WEIGHTS.runs) +
-          weighted(prevRegsByTeam.get(team) ?? 0, maxPrevTeamRegs, SCORE_WEIGHTS.registrations),
-      );
       return {
         team,
-        division: divisions.get(team) ?? null,
+        division: organization.teamDivisions.get(team) ?? null,
         runs: teamRuns,
         registrations: teamRegs,
         activeUsers: users,
         avgRunsPerUser: users ? Math.round((teamRuns / users) * 10) / 10 : 0,
-        score,
-        delta: pctDelta(score, prevScore),
+        delta: pctDelta(teamRuns, prevRunsByTeam.get(team) ?? 0),
       };
     })
-    .sort((a, b) => b.score - a.score);
+    .sort((a, b) => b.runs - a.runs);
+
+  // ---------- 부문별 허브 활성률 ----------
+  const activeIdsByDivision = new Map<string, Set<string>>();
+  for (const run of runs) {
+    const division = organization.teamDivisions.get(run.deptSnapshot);
+    if (!division) continue;
+    const ids = activeIdsByDivision.get(division) ?? new Set<string>();
+    ids.add(run.userId);
+    activeIdsByDivision.set(division, ids);
+  }
+
+  const divisionActivityRows: DivisionActivityRow[] = organization.divisionNames.map((division) => {
+    const activeUsers = activeIdsByDivision.get(division)?.size ?? 0;
+    const headcount = divisionHeadcounts[division] ?? null;
+    return {
+      division,
+      activeUsers,
+      headcount,
+      activeRate: rate(activeUsers, headcount),
+    };
+  });
+
+  const companyActiveIds = new Set<string>();
+  let companyHeadcount = 0;
+  for (const row of divisionActivityRows) {
+    if (row.headcount == null || row.headcount <= 0) continue;
+    companyHeadcount += row.headcount;
+    for (const userId of activeIdsByDivision.get(row.division) ?? []) {
+      companyActiveIds.add(userId);
+    }
+  }
+  const companyActiveRate = rate(companyActiveIds.size, companyHeadcount || null);
 
   // ---------- 개인 리더보드 ----------
   const runsByUser = countBy(runs, (r) => r.userId);
@@ -274,9 +322,10 @@ export async function getDashboardData(period: Period): Promise<DashboardData> {
         team: info?.dept ?? "-",
         runs: userRuns,
         registrations: userRegs,
+        // PeoplePanel은 3단계에서 대시보드에서 제거된다. 그 전까지 기존 표시값만 유지한다.
         score: Math.round(
-          weighted(userRuns, maxUserRuns, SCORE_WEIGHTS.runs) +
-            weighted(userRegs, maxUserRegs, SCORE_WEIGHTS.registrations),
+          (maxUserRuns > 0 ? (userRuns / maxUserRuns) * 60 : 0) +
+            (maxUserRegs > 0 ? (userRegs / maxUserRegs) * 40 : 0),
         ),
         badges,
       };
@@ -316,36 +365,16 @@ export async function getDashboardData(period: Period): Promise<DashboardData> {
 
   // ---------- KPI ----------
   const totalRuns = runs.length;
-  const registeredCategories = new Set(agents.map((a) => a.category)).size;
-  const ranCategories = [...runsByCategory.values()].filter((n) => n > 0).length;
-  const totalCategories = categoryNames.length;
   const spreadOutside = spread.filter((s) => s.outsidePct > 0).length;
-  const avgTeamsPerAgent = spread.length
-    ? Math.round((spread.reduce((sum, s) => sum + s.teams, 0) / spread.length) * 10) / 10
-    : 0;
+  const prevSpreadOutside = prevSpread.filter((row) => row.outsidePct > 0).length;
+  const spreadRate = agents.length ? spreadOutside / agents.length : 0;
+  const prevSpreadRate = prevAgentById.size ? prevSpreadOutside / prevAgentById.size : 0;
+  const avgTeamsPerAgent = averageTeams(spread);
+  const prevAvgTeamsPerAgent = averageTeams(prevSpread);
+  const participatingTeams = new Set(runs.map((run) => run.deptSnapshot)).size;
+  const prevParticipatingTeams = new Set(prevRuns.map((run) => run.deptSnapshot)).size;
 
   const kpis: KpiCard[] = [
-    {
-      key: "registrations",
-      label: "에이전트 등록",
-      value: String(newAgents.length),
-      unit: "건",
-      delta: pctDelta(newAgents.length, prevNewAgents.length),
-    },
-    {
-      key: "teams",
-      label: "참여 부서",
-      value: String(teams.length),
-      unit: "곳",
-      delta: pctDelta(teams.length, new Set(prevRuns.map((r) => r.deptSnapshot)).size),
-    },
-    {
-      key: "activeUsers",
-      label: "활성 유저",
-      value: String(activity.length),
-      unit: "명",
-      delta: pctDelta(activity.length, prevActivity.length),
-    },
     {
       key: "runs",
       label: "에이전트 실행",
@@ -354,25 +383,32 @@ export async function getDashboardData(period: Period): Promise<DashboardData> {
       delta: pctDelta(totalRuns, prevRuns.length),
     },
     {
-      key: "registeredCategories",
-      label: "등록 카테고리",
-      value: String(registeredCategories),
-      unit: `/ ${totalCategories}`,
-      delta: null,
+      key: "activeUsers",
+      label: "활성 유저",
+      value: String(activeUserIds.size),
+      unit: "명",
+      delta: pctDelta(activeUserIds.size, prevActiveUserIds.size),
     },
     {
-      key: "ranCategories",
-      label: "실행 카테고리",
-      value: String(ranCategories),
-      unit: `/ ${totalCategories}`,
-      delta: null,
+      key: "teams",
+      label: "참여 부서",
+      value: String(participatingTeams),
+      unit: "곳",
+      delta: pctDelta(participatingTeams, prevParticipatingTeams),
+    },
+    {
+      key: "registrations",
+      label: "에이전트 등록",
+      value: String(newAgents.length),
+      unit: "건",
+      delta: pctDelta(newAgents.length, prevNewAgents.length),
     },
     {
       key: "spreadOutside",
       label: "타팀까지 퍼진 에이전트",
       value: String(spreadOutside),
-      unit: `/ ${spread.length}건`,
-      delta: null,
+      unit: `/ ${agents.length}건`,
+      delta: pctDelta(spreadRate, prevSpreadRate),
       spread: true,
     },
     {
@@ -380,7 +416,7 @@ export async function getDashboardData(period: Period): Promise<DashboardData> {
       label: "에이전트당 평균 실행 팀",
       value: avgTeamsPerAgent.toFixed(1),
       unit: "팀",
-      delta: null,
+      delta: pctDelta(avgTeamsPerAgent, prevAvgTeamsPerAgent),
       spread: true,
     },
   ];
@@ -394,5 +430,9 @@ export async function getDashboardData(period: Period): Promise<DashboardData> {
     individuals: individuals.slice(0, 5),
     byCategory,
     spread,
+    divisionActivity: {
+      rows: divisionActivityRows,
+      averageRate: companyActiveRate,
+    },
   };
 }
