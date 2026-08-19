@@ -1,10 +1,8 @@
-# main 에 push 되면 EC2 에 SSH 로 접속해 deploy/deploy.sh 실행
+# EC2 준비 전에는 자동 배포를 실행하지 않는다. 서버 준비 후 main push 트리거를 복원한다.
 # 필요한 GitHub Secrets: EC2_HOST, EC2_USER(보통 ubuntu), EC2_SSH_KEY(개인키 전체 내용)
 name: Deploy to EC2
 
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
 
 concurrency:
