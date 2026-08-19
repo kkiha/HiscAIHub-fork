@@ -99,7 +99,7 @@ async function main() {
     });
   }
   // 개정 전 카테고리가 남아 있으면 지운다.
-  await db.category.deleteMany({ where: { name: { notIn: CATEGORIES } } });
+  await db.category.deleteMany({ where: { name: { notIn: [...CATEGORIES] } } });
 
   console.log("사용자 적재 중...");
   const userByName = new Map<string, string>();

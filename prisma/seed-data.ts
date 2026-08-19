@@ -2,6 +2,8 @@
 // 개인 활동이 한 계정에 몰리지 않도록 팀별 구성원과 최근 실행 목표를 함께 관리한다.
 // [SQLITE] PostgreSQL 복귀 시: RunType, TimeBand를 @prisma/client에서 import한다.
 import type { RunType, TimeBand } from "../src/lib/domain-values";
+import type { Category } from "../src/lib/categories";
+export { CATEGORIES } from "../src/lib/categories";
 
 // 목업 shot() — 산출물 스크린샷 자리를 채우는 더미 SVG. 실제 이미지 업로드는 별도 과제.
 export function shot(kind: "table" | "chart" | "chat" | "doc", title: string): string {
@@ -22,8 +24,6 @@ export function shot(kind: "table" | "chart" | "chat" | "doc", title: string): s
     '<rect x="1" y="1" width="318" height="188" fill="none" stroke="#E7E4DE" stroke-width="2"/></svg>';
   return "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
 }
-
-export const CATEGORIES = ["작성·요약", "조사·리서치", "분석", "번역·검토", "기획·아이디어", "자동화·개발"];
 
 // 권다은 = 실제 로그인 테스트 계정. 나머지는 {given}.{family}@hanwha.com 패턴의 시드 전용 동료 계정.
 export const USERS = [
@@ -90,7 +90,7 @@ export type ReviewSeed = {
 
 export type AgentSeed = {
   key: string;
-  cat: string;
+  cat: Category;
   name: string;
   daysAgo: number;
   desc: string;
@@ -116,12 +116,12 @@ export type AgentSeed = {
 export const AGENTS: AgentSeed[] = [
   {
     key: "a1",
-    cat: "조사·리서치",
+    cat: "조사·수집",
     name: "리서치 브리핑 자동 발송 에이전트",
     daysAgo: 9,
     desc: "매일 새벽에 리서치 포털을 스스로 돌며 전날 신규 리포트를 모아 팀 브리핑을 만들어 메일로 보냅니다.",
     author: "박소영",
-    runs: 50,
+    runs: 38,
     official: true,
     runType: "schedule",
     trigger: "매일 오전 06:30 (평일)",
@@ -185,7 +185,7 @@ export const AGENTS: AgentSeed[] = [
     daysAgo: 12,
     desc: "상담 시스템에 새 티켓이 들어오면 유형을 분류하고 규정을 찾아 답변 초안까지 붙여둡니다. 발송은 담당자가 승인해야 합니다.",
     author: "최민준",
-    runs: 70,
+    runs: 42,
     official: true,
     runType: "event",
     trigger: "신규 티켓이 생성될 때마다",
@@ -231,12 +231,12 @@ export const AGENTS: AgentSeed[] = [
   },
   {
     key: "a3",
-    cat: "자동화·개발",
+    cat: "점검·대조",
     name: "월 마감 데이터 정합성 점검 에이전트",
     daysAgo: 6,
     desc: "마감 폴더의 엑셀 12종을 스스로 열어 회계시스템 값과 대조하고, 안 맞는 항목만 골라 점검 결과서를 만들어줍니다.",
     author: "권다은",
-    runs: 30,
+    runs: 32,
     runType: "skill",
     trigger: '"마감 점검해줘" 라고 부르면 실행',
     targetTask:
@@ -285,12 +285,12 @@ export const AGENTS: AgentSeed[] = [
   },
   {
     key: "a4",
-    cat: "번역·검토",
+    cat: "작성·요약",
     name: "사내 규정 Q&A · 유권해석 접수 봇",
     daysAgo: 15,
     desc: "Teams에서 물어보면 근거 조항과 함께 답하고, 규정에 없는 건은 유권해석 요청까지 스스로 접수해줍니다.",
     author: "이도현",
-    runs: 28,
+    runs: 45,
     official: true,
     runType: "app",
     trigger: "Teams에서 봇을 부를 때",
@@ -344,12 +344,12 @@ export const AGENTS: AgentSeed[] = [
   },
   {
     key: "a5",
-    cat: "기획·아이디어",
+    cat: "작성·요약",
     name: "회의 녹취 → 회의록·할 일 자동 등록",
-    daysAgo: 40,
+    daysAgo: 20,
     desc: "녹취 파일을 폴더에 넣어두면 회의록을 만들고, 액션아이템을 협업툴 할 일 보드에 카드로 직접 등록합니다.",
     author: "윤서연",
-    runs: 15,
+    runs: 28,
     runType: "skill",
     trigger: "녹취 파일을 지정 폴더에 넣으면",
     targetTask:
@@ -385,12 +385,12 @@ export const AGENTS: AgentSeed[] = [
   },
   {
     key: "a6",
-    cat: "분석",
+    cat: "점검·대조",
     name: "신규 약관 조항 대조 검토 에이전트",
     daysAgo: 26,
     desc: "신규 상품 약관을 표준약관·과거 지적사례와 조항 단위로 대조해 봐야 할 조항만 추려줍니다.",
     author: "한지우",
-    runs: 35,
+    runs: 26,
     runType: "skill",
     trigger: "약관 파일을 넣고 실행할 때",
     targetTask:
@@ -444,7 +444,7 @@ export const AGENTS: AgentSeed[] = [
     daysAgo: 3,
     desc: "상담일지에서 고객 요구, 약속한 후속 조치, 적합성 확인 항목을 분리해 CRM 기록 초안을 만듭니다.",
     author: "남우진",
-    runs: 60,
+    runs: 36,
     runType: "app",
     trigger: "상담 종료 후 담당자가 녹취록 또는 메모를 업로드할 때",
     targetTask: "WM 상담 후 메모를 다시 읽어 고객 관심 상품과 후속 일정을 CRM 형식에 맞춰 정리하는 업무입니다. 누락된 적합성 확인 항목을 찾는 데도 시간이 들었습니다.",
@@ -465,12 +465,12 @@ export const AGENTS: AgentSeed[] = [
   },
   {
     key: "a8",
-    cat: "조사·리서치",
+    cat: "조사·수집",
     name: "해외주식 실적발표 모니터 에이전트",
     daysAgo: 5,
     desc: "관심 종목의 실적발표 자료와 컨퍼런스콜 핵심 변화를 모아 장 시작 전 점검표를 만듭니다.",
     author: "도지안",
-    runs: 50,
+    runs: 42,
     runType: "schedule",
     trigger: "미국 장 마감 후 평일 오전 7시",
     targetTask: "밤사이 발표된 실적 자료, 가이던스, 컨퍼런스콜 발언을 여러 사이트에서 확인해 데일리 브리핑으로 묶는 업무입니다.",
@@ -491,12 +491,12 @@ export const AGENTS: AgentSeed[] = [
   },
   {
     key: "a9",
-    cat: "분석",
+    cat: "분석·진단",
     name: "연금 포트폴리오 이탈 점검 에이전트",
     daysAgo: 8,
     desc: "모델 포트폴리오와 고객 운용 지시의 차이를 계산해 허용 범위를 벗어난 계좌군을 우선 점검합니다.",
     author: "공서진",
-    runs: 35,
+    runs: 34,
     runType: "app",
     trigger: "월간 리밸런싱 점검 파일을 업로드할 때",
     targetTask: "연금 포트폴리오의 자산군 비중을 모델과 대조하고, 허용 편차를 넘은 계좌군을 찾아 담당자에게 배정하는 업무입니다.",
@@ -517,12 +517,12 @@ export const AGENTS: AgentSeed[] = [
   },
   {
     key: "a10",
-    cat: "번역·검토",
+    cat: "번역·교정",
     name: "영문 공시 번역·용어 검수 에이전트",
     daysAgo: 11,
     desc: "영문 공시를 사내 용어집에 맞춰 번역하고 수치·날짜·고유명사의 원문 대조표를 함께 만듭니다.",
     author: "송재윤",
-    runs: 25,
+    runs: 28,
     runType: "app",
     trigger: "영문 공시 PDF 또는 HTML을 등록할 때",
     targetTask: "해외 기업 공시의 핵심 내용을 번역한 뒤 금융 용어와 숫자가 원문과 일치하는지 재검토하는 업무입니다.",
@@ -543,12 +543,12 @@ export const AGENTS: AgentSeed[] = [
   },
   {
     key: "a11",
-    cat: "기획·아이디어",
+    cat: "작성·요약",
     name: "디지털 상품 요구사항 정리 에이전트",
-    daysAgo: 35,
+    daysAgo: 14,
     desc: "인터뷰 메모와 VOC를 기능 요구사항, 정책 결정, 미해결 쟁점으로 구분해 기획 백로그를 만듭니다.",
     author: "김로아",
-    runs: 15,
+    runs: 32,
     runType: "skill",
     trigger: "기획자가 인터뷰 메모와 VOC 파일을 선택해 실행할 때",
     targetTask: "여러 채널에서 모인 요구를 읽고 중복을 합친 뒤 개발 가능한 수준의 요구사항과 확인 질문으로 정리하는 업무입니다.",
@@ -569,12 +569,12 @@ export const AGENTS: AgentSeed[] = [
   },
   {
     key: "a12",
-    cat: "자동화·개발",
+    cat: "분석·진단",
     name: "배치 장애 로그 1차 진단 에이전트",
     daysAgo: 18,
     desc: "야간 배치 로그를 실패 구간별로 묶고 최근 정상 실행과 비교해 운영자가 확인할 원인 후보를 제시합니다.",
     author: "서가람",
-    runs: 32,
+    runs: 45,
     runType: "event",
     trigger: "배치 모니터링 시스템이 실패 이벤트를 전송할 때",
     targetTask: "대량의 배치 로그에서 최초 오류와 연쇄 오류를 구분하고, 최근 배포나 입력 데이터 변화와 연결해 1차 장애 보고를 만드는 업무입니다.",
@@ -600,7 +600,7 @@ export const AGENTS: AgentSeed[] = [
     daysAgo: 22,
     desc: "딜 개요와 실사 메모를 심사 양식에 맞춰 정리하고 근거가 부족한 항목을 별도 확인 목록으로 남깁니다.",
     author: "강유찬",
-    runs: 55,
+    runs: 30,
     runType: "skill",
     trigger: "담당자가 딜 자료 폴더에서 심사 초안 생성을 실행할 때",
     targetTask: "사업 개요, 거래 구조, 주요 리스크, 실사 결과를 여러 문서에서 찾아 심사위원회 양식으로 옮기는 업무입니다.",
@@ -621,12 +621,12 @@ export const AGENTS: AgentSeed[] = [
   },
   {
     key: "a14",
-    cat: "조사·리서치",
+    cat: "조사·수집",
     name: "금융상품 경쟁사 수수료 모니터 에이전트",
     daysAgo: 25,
     desc: "공식 홈페이지와 약관 공지에서 주요 금융상품의 수수료 변화를 찾아 비교표와 변경 근거를 만듭니다.",
     author: "구지민",
-    runs: 40,
+    runs: 38,
     runType: "schedule",
     trigger: "매주 월요일 오전 8시",
     targetTask: "경쟁사 홈페이지와 공지에서 상품별 수수료를 찾아 지난주 값과 비교하고 변경 사유를 확인하는 업무입니다.",
@@ -647,12 +647,12 @@ export const AGENTS: AgentSeed[] = [
   },
   {
     key: "a15",
-    cat: "분석",
+    cat: "분석·진단",
     name: "경영관리 예산 이상치 탐지 에이전트",
     daysAgo: 27,
     desc: "월별 집행 내역을 예산, 전년 동월, 최근 추세와 비교해 담당자가 확인할 이상 변동을 추립니다.",
     author: "권아린",
-    runs: 30,
+    runs: 35,
     runType: "app",
     trigger: "월 마감 집행 파일과 예산 파일을 업로드할 때",
     targetTask: "조직별 비용 집행을 예산과 대조하고 큰 증감의 원인을 계정과목별로 확인해 월간 보고 자료를 만드는 업무입니다.",
@@ -673,12 +673,12 @@ export const AGENTS: AgentSeed[] = [
   },
   {
     key: "a16",
-    cat: "번역·검토",
+    cat: "번역·교정",
     name: "해외 운용사 월간보고서 검토 에이전트",
     daysAgo: 29,
     desc: "해외 운용사 보고서를 번역하고 전월 보고서와 비교해 운용전략·위험지표 변화와 확인 질문을 정리합니다.",
     author: "장도하",
-    runs: 23,
+    runs: 26,
     runType: "skill",
     trigger: "월간 운용보고서 PDF 두 개를 선택해 비교할 때",
     targetTask: "해외 운용사의 영문 월간보고서를 읽고 성과 요인과 전략 변화를 번역한 뒤 전월과 달라진 위험지표를 찾는 업무입니다.",
@@ -699,12 +699,12 @@ export const AGENTS: AgentSeed[] = [
   },
   {
     key: "a17",
-    cat: "기획·아이디어",
+    cat: "분석·진단",
     name: "WM 캠페인 아이디어 검증 에이전트",
     daysAgo: 16,
     desc: "캠페인 아이디어를 대상 고객, 기대 행동, 준법 제약, 측정 지표로 구조화해 실행 가능성을 비교합니다.",
     author: "백예린",
-    runs: 12,
+    runs: 33,
     runType: "app",
     trigger: "캠페인 기획 회의 전 아이디어 목록을 입력할 때",
     targetTask: "여러 캠페인 아이디어를 동일한 기준으로 비교하고, 고객 접점과 준법 검토가 필요한 부분을 미리 정리하는 업무입니다.",
@@ -725,12 +725,12 @@ export const AGENTS: AgentSeed[] = [
   },
   {
     key: "a18",
-    cat: "자동화·개발",
+    cat: "작성·요약",
     name: "준법 점검 체크리스트 생성 에이전트",
     daysAgo: 7,
     desc: "상품 설명서와 판매 절차 문서에서 적용 규정을 연결해 출시 전 준법 점검 체크리스트를 생성합니다.",
     author: "고은채",
-    runs: 28,
+    runs: 40,
     runType: "skill",
     trigger: "검토 대상 상품 문서 폴더에서 체크리스트 생성을 실행할 때",
     targetTask: "상품 출시 전 설명서, 광고 문안, 판매 절차를 규정별로 대조해 필수 확인 항목과 근거 조항을 작성하는 업무입니다.",
@@ -751,12 +751,12 @@ export const AGENTS: AgentSeed[] = [
   },
   {
     key: "a19",
-    cat: "작성·요약",
+    cat: "번역·교정",
     name: "위원회 보고서 문체 정리 에이전트",
     daysAgo: 4,
     desc: "부서별 원고를 위원회 보고 형식으로 통일하고 결론, 요청사항, 근거 수치를 한눈에 보이게 정리합니다.",
     author: "박다온",
-    runs: 40,
+    runs: 24,
     runType: "skill",
     trigger: "위원회 보고서 초안 파일을 선택해 문체 점검을 실행할 때",
     targetTask: "여러 부서가 작성한 원고의 표현과 단위를 통일하고 의사결정 요청사항을 앞부분에 배치하는 업무입니다.",
@@ -777,12 +777,12 @@ export const AGENTS: AgentSeed[] = [
   },
   {
     key: "a20",
-    cat: "조사·리서치",
+    cat: "조사·수집",
     name: "채권 발행시장 데일리 스캔 에이전트",
     daysAgo: 28,
     desc: "당일 채권 발행 공고와 수요예측 결과를 수집해 업종·등급·만기별 시장 동향을 요약합니다.",
     author: "배준서",
-    runs: 30,
+    runs: 31,
     runType: "schedule",
     trigger: "평일 오후 5시 30분",
     targetTask: "여러 공시와 시장 자료에서 채권 발행 조건과 수요예측 결과를 찾아 데일리 시장 자료로 정리하는 업무입니다.",
@@ -803,12 +803,12 @@ export const AGENTS: AgentSeed[] = [
   },
   {
     key: "a21",
-    cat: "분석",
+    cat: "분석·진단",
     name: "디지털 채널 전환 퍼널 분석 에이전트",
     daysAgo: 45,
     desc: "비식별 이벤트 집계로 상품 탐색부터 신청 완료까지의 이탈 구간과 채널별 차이를 분석합니다.",
     author: "문예준",
-    runs: 25,
+    runs: 29,
     runType: "app",
     trigger: "주간 퍼널 집계 파일을 업로드할 때",
     targetTask: "웹과 앱의 단계별 방문·이탈 수치를 비교하고 전주 대비 변화가 큰 구간의 원인 후보를 찾는 업무입니다.",
@@ -829,12 +829,12 @@ export const AGENTS: AgentSeed[] = [
   },
   {
     key: "a22",
-    cat: "기획·아이디어",
+    cat: "분석·진단",
     name: "사내 교육 수요 설문 테마 도출 에이전트",
     daysAgo: 75,
     desc: "익명 설문 응답을 직무 과제와 학습 장애요인으로 묶어 교육 과정 후보와 검증 질문을 제안합니다.",
     author: "노유진",
-    runs: 8,
+    runs: 22,
     runType: "app",
     trigger: "익명화된 교육 수요 설문 파일을 업로드할 때",
     targetTask: "자유서술 설문을 읽고 반복되는 업무 어려움과 원하는 교육 형태를 분류해 연간 교육 기획 자료를 만드는 업무입니다.",
@@ -858,28 +858,28 @@ export const AGENTS: AgentSeed[] = [
 // 확산 지표의 원천 = 팀 × 에이전트 실행 행렬 (최근 30일).
 // 이 값으로 AuditLog(agent_run, deptSnapshot)를 만들며 에이전트 runs와 합계가 일치해야 한다.
 export const SPREAD: Record<string, Record<string, number>> = {
-  a1: { "디지털L&D센터": 10, 법무팀: 7, WM추진팀: 7, 해외주식팀: 7, 연금기획팀: 7, 디지털상품기획팀: 6, 경영관리팀: 6 },
-  a2: { 법무팀: 30, 플랫폼개발팀: 10, WM추진팀: 10, "디지털L&D센터": 20 },
-  a3: { 플랫폼개발팀: 30 },
-  a4: { WM추진팀: 12, 법무팀: 6, 연금기획팀: 5, 경영관리팀: 5 },
-  a5: { 해외주식팀: 9, 플랫폼개발팀: 6 },
-  a6: { "디지털L&D센터": 35 },
-  a7: { WM추진팀: 28, "디지털L&D센터": 18, 연금기획팀: 14 },
-  a8: { 해외주식팀: 10, "디지털L&D센터": 7, 법무팀: 6, 플랫폼개발팀: 6, WM추진팀: 6, 연금기획팀: 5, IB1팀: 5, 상품전략팀: 5 },
-  a9: { 연금기획팀: 35 },
-  a10: { 해외주식팀: 15, "디지털L&D센터": 10 },
-  a11: { 디지털상품기획팀: 15 },
-  a12: { 플랫폼개발팀: 12, 법무팀: 5, 디지털상품기획팀: 5, IB1팀: 5, 경영관리팀: 5 },
-  a13: { IB1팀: 25, 법무팀: 10, 경영관리팀: 20 },
-  a14: { 상품전략팀: 20, WM추진팀: 10, 디지털상품기획팀: 7, IB1팀: 3 },
-  a15: { 경영관리팀: 14, 해외주식팀: 7, 상품전략팀: 9 },
-  a16: { 연금기획팀: 15, IB1팀: 8 },
-  a17: { WM추진팀: 8, 법무팀: 4 },
-  a18: { 법무팀: 8, "디지털L&D센터": 4, 해외주식팀: 4, 연금기획팀: 4, 디지털상품기획팀: 4, 경영관리팀: 4 },
-  a19: { 경영관리팀: 40 },
-  a20: { IB1팀: 15, 법무팀: 5, 상품전략팀: 10 },
-  a21: { 플랫폼개발팀: 12, "디지털L&D센터": 4, 해외주식팀: 5, IB1팀: 4 },
-  a22: { "디지털L&D센터": 5, 해외주식팀: 3 },
+  a1: { "디지털L&D센터": 8, 법무팀: 5, WM추진팀: 5, 해외주식팀: 5, 연금기획팀: 5, 디지털상품기획팀: 5, 경영관리팀: 5 },
+  a2: { 법무팀: 20, 플랫폼개발팀: 4, WM추진팀: 6, "디지털L&D센터": 12 },
+  a3: { 플랫폼개발팀: 32 },
+  a4: { WM추진팀: 21, 법무팀: 8, 연금기획팀: 9, 경영관리팀: 7 },
+  a5: { 해외주식팀: 20, 플랫폼개발팀: 8 },
+  a6: { "디지털L&D센터": 26 },
+  a7: { WM추진팀: 17, "디지털L&D센터": 10, 연금기획팀: 9 },
+  a8: { 해외주식팀: 8, "디지털L&D센터": 6, 법무팀: 5, 플랫폼개발팀: 4, WM추진팀: 4, 연금기획팀: 5, IB1팀: 5, 상품전략팀: 5 },
+  a9: { 연금기획팀: 34 },
+  a10: { 해외주식팀: 18, "디지털L&D센터": 10 },
+  a11: { 디지털상품기획팀: 32 },
+  a12: { 플랫폼개발팀: 22, 법무팀: 6, 디지털상품기획팀: 6, IB1팀: 6, 경영관리팀: 5 },
+  a13: { IB1팀: 15, 법무팀: 4, 경영관리팀: 11 },
+  a14: { 상품전략팀: 19, WM추진팀: 11, 디지털상품기획팀: 6, IB1팀: 2 },
+  a15: { 경영관리팀: 18, 해외주식팀: 8, 상품전략팀: 9 },
+  a16: { 연금기획팀: 18, IB1팀: 8 },
+  a17: { WM추진팀: 22, 법무팀: 11 },
+  a18: { 법무팀: 10, "디지털L&D센터": 6, 해외주식팀: 6, 연금기획팀: 6, 디지털상품기획팀: 6, 경영관리팀: 6 },
+  a19: { 경영관리팀: 24 },
+  a20: { IB1팀: 16, 법무팀: 5, 상품전략팀: 10 },
+  a21: { 플랫폼개발팀: 14, "디지털L&D센터": 4, 해외주식팀: 6, IB1팀: 5 },
+  a22: { "디지털L&D센터": 15, 해외주식팀: 7 },
 };
 
 // 구독 현황 — 직전 월 조직 역량개발비 기준 (계정 수와 비용은 원 집계값 유지).
