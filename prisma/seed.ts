@@ -1,9 +1,10 @@
-// design-reference/agent_hub_v3_mockup.html 의 목 데이터를 DB로 이관.
-// 데이터 값 자체는 seed-data.ts에 두고, 여기서는 적재 순서와 파생 로그 생성만 담당한다.
+// 사내 시연용 현실화 데이터를 DB로 이관.
+// 데이터 값 자체는 seed-data.ts에 두고, 여기서는 적재 순서·분산 배정·파생 로그 생성을 담당한다.
 import { PrismaClient } from "@prisma/client";
-import { AGENTS, CATEGORIES, SPREAD, SUBSCRIPTION, TEAM_MEMBER, USERS } from "./seed-data";
+import { AGENTS, CATEGORIES, SPREAD, SUBSCRIPTION, USERS } from "./seed-data";
 
 const db = new PrismaClient();
+const MAX_30_DAY_RUNS_PER_USER = 40;
 
 function daysAgo(n: number, hour = 10): Date {
   const d = new Date();
@@ -12,7 +13,69 @@ function daysAgo(n: number, hour = 10): Date {
   return d;
 }
 
+/** 팀 실행을 상위 사용자가 조금 더 많이 가져가도록 나누되 월 40회 상한을 지킨다. */
+function weightedRunCounts(total: number, activeUsers: number): number[] {
+  if (total > activeUsers * MAX_30_DAY_RUNS_PER_USER) {
+    throw new Error(`월 실행 상한으로 분배할 수 없습니다: ${total}회 / ${activeUsers}명`);
+  }
+
+  const weights = Array.from({ length: activeUsers }, (_, i) => activeUsers - i + 1);
+  const weightSum = weights.reduce((sum, weight) => sum + weight, 0);
+  const counts = weights.map((weight) => Math.floor((total * weight) / weightSum));
+  let remainder = total - counts.reduce((sum, count) => sum + count, 0);
+  for (let i = 0; remainder > 0; i = (i + 1) % counts.length) {
+    if (counts[i] >= MAX_30_DAY_RUNS_PER_USER) continue;
+    counts[i] += 1;
+    remainder -= 1;
+  }
+
+  if (counts.some((count) => count > MAX_30_DAY_RUNS_PER_USER)) {
+    throw new Error(`개인 월 실행 상한 ${MAX_30_DAY_RUNS_PER_USER}회를 초과했습니다.`);
+  }
+  return counts;
+}
+
+/** 사용자별 목표 횟수를 라운드로빈 큐로 풀어 한 에이전트에 특정 사용자가 몰리지 않게 한다. */
+function interleavedUserQueue(names: string[], counts: number[]): string[] {
+  const remaining = [...counts];
+  const queue: string[] = [];
+  while (remaining.some((count) => count > 0)) {
+    for (let i = 0; i < names.length; i++) {
+      if (remaining[i] <= 0) continue;
+      queue.push(names[i]);
+      remaining[i] -= 1;
+    }
+  }
+  return queue;
+}
+
 async function main() {
+  if (USERS.length < 45 || USERS.length > 60) {
+    throw new Error(`사용자 목표 범위(45~60명)를 벗어났습니다: ${USERS.length}명`);
+  }
+  if (AGENTS.length < 18 || AGENTS.length > 28) {
+    throw new Error(`에이전트 목표 범위(18~28건)를 벗어났습니다: ${AGENTS.length}건`);
+  }
+  const recentRegistrations = AGENTS.filter((agent) => agent.daysAgo <= 30).length;
+  if (recentRegistrations < 18 || recentRegistrations > 28) {
+    throw new Error(`최근 30일 등록 목표 범위(18~28건)를 벗어났습니다: ${recentRegistrations}건`);
+  }
+
+  for (const agent of AGENTS) {
+    const requiredText = [agent.name, agent.desc, agent.targetTask, agent.effect, agent.instructions];
+    const requiredLists = [agent.tasks, agent.tools, agent.prerequisites, agent.howToUse, agent.outputs];
+    if (requiredText.some((value) => !value.trim() || /TODO|TBD|자리표시자/i.test(value))) {
+      throw new Error(`에이전트 필수 설명이 비었거나 자리표시자입니다: ${agent.key}`);
+    }
+    if (requiredLists.some((values) => values.length === 0)) {
+      throw new Error(`에이전트 필수 목록이 비었습니다: ${agent.key}`);
+    }
+    const spreadTotal = Object.values(SPREAD[agent.key] ?? {}).reduce((sum, count) => sum + count, 0);
+    if (spreadTotal !== agent.runs) {
+      throw new Error(`에이전트 실행 합계가 맞지 않습니다: ${agent.key} (${agent.runs} / ${spreadTotal})`);
+    }
+  }
+
   console.log("기존 콘텐츠 정리 중...");
   // User/Category는 아래에서 upsert하므로 콘텐츠성 테이블만 비운다.
   await db.notification.deleteMany();
@@ -35,7 +98,7 @@ async function main() {
     });
   }
   // 개정 전 카테고리가 남아 있으면 지운다.
-  await db.category.deleteMany({ where: { name: { notIn: CATEGORIES } } });
+  await db.category.deleteMany({ where: { name: { notIn: [...CATEGORIES] } } });
 
   console.log("사용자 적재 중...");
   const userByName = new Map<string, string>();
@@ -152,38 +215,88 @@ async function main() {
     createdAt: Date;
   }[] = [];
 
+  const recentRunsByTeam = new Map<string, number>();
+  for (const byTeam of Object.values(SPREAD)) {
+    for (const [team, count] of Object.entries(byTeam)) {
+      recentRunsByTeam.set(team, (recentRunsByTeam.get(team) ?? 0) + count);
+    }
+  }
+
+  const activeMembersByTeam = new Map<string, string[]>();
+  const recentUserQueueByTeam = new Map<string, string[]>();
+  for (const [team, total] of recentRunsByTeam) {
+    const members = USERS.filter((user) => user.dept === team);
+    if (members.length < 5 || members.length > 8) {
+      throw new Error(`팀 인원 목표 범위(5~8명)를 벗어났습니다: ${team} ${members.length}명`);
+    }
+
+    // 팀마다 마지막 1명은 최근 30일 실행 0회로 남겨 전원 활성인 분포를 피한다.
+    const activeNames = members.slice(0, -1).map((user) => user.name);
+    const counts = weightedRunCounts(total, activeNames.length);
+    activeMembersByTeam.set(team, activeNames);
+    recentUserQueueByTeam.set(team, interleavedUserQueue(activeNames, counts));
+  }
+
+  const recentRunCountByUser = new Map<string, number>();
+  const previousOffsetByTeam = new Map<string, number>();
+
   for (const [agentKey, byTeam] of Object.entries(SPREAD)) {
     const agent = AGENTS.find((a) => a.key === agentKey)!;
     const agentId = agentIdByKey.get(agentKey)!;
     for (const [team, count] of Object.entries(byTeam)) {
-      const memberName = TEAM_MEMBER[team];
-      const userId = userByName.get(memberName);
-      if (!userId) throw new Error(`팀 대표 사용자를 찾을 수 없습니다: ${team}`);
+      const recentQueue = recentUserQueueByTeam.get(team);
+      const activeNames = activeMembersByTeam.get(team);
+      if (!recentQueue || !activeNames) throw new Error(`팀 사용자 분배 정보를 찾을 수 없습니다: ${team}`);
 
-      const push = (n: number, minDay: number, spanDays: number) => {
-        for (let i = 0; i < n; i++) {
-          runLogs.push({
-            userId,
-            deptSnapshot: team,
-            action: "agent_run",
-            targetType: "agent",
-            targetId: agentId,
-            targetLabel: agent.name,
-            createdAt: daysAgo(minDay + Math.floor(Math.random() * spanDays), 9 + (i % 9)),
-          });
+      // 최근 30일 실행은 팀별 사용자 큐에서 꺼내 에이전트와 무관하게 고르게 분산한다.
+      for (let i = 0; i < count; i++) {
+        const memberName = recentQueue.shift();
+        const userId = memberName ? userByName.get(memberName) : null;
+        if (!memberName || !userId) throw new Error(`최근 실행 사용자를 찾을 수 없습니다: ${team}`);
+        const nextCount = (recentRunCountByUser.get(memberName) ?? 0) + 1;
+        if (nextCount > MAX_30_DAY_RUNS_PER_USER) {
+          throw new Error(`${memberName}의 최근 30일 실행이 ${MAX_30_DAY_RUNS_PER_USER}회를 초과했습니다.`);
         }
-      };
+        recentRunCountByUser.set(memberName, nextCount);
+        runLogs.push({
+          userId,
+          deptSnapshot: team,
+          action: "agent_run",
+          targetType: "agent",
+          targetId: agentId,
+          targetLabel: agent.name,
+          createdAt: daysAgo(1 + Math.floor(Math.random() * 29), 9 + (i % 9)),
+        });
+      }
 
-      // 최근 30일 = 목업 SPREAD 값 그대로. 대시보드 30일 기준 수치가 목업과 일치해야 한다.
-      push(count, 0, 30);
-      // 직전 30일(30~59일 전)은 팀마다 다른 비율로 깔아 증감률이 0이 아닌 값으로 나오게 한다.
+      // 직전 기간은 31~59일 전으로 두어 시간대에 따라 최근 30일 창에 걸치는 경계 로그를 막는다.
       // 비율을 팀 이름 해시로 고정해 시드를 다시 돌려도 증감 방향이 뒤집히지 않는다.
       const ratio = 0.6 + ((team.length * 7 + agentKey.charCodeAt(1)) % 5) * 0.12;
-      push(Math.round(count * ratio), 30, 30);
+      const previousCount = Math.round(count * ratio);
+      const offset = previousOffsetByTeam.get(team) ?? 0;
+      for (let i = 0; i < previousCount; i++) {
+        const memberName = activeNames[(offset + i) % activeNames.length];
+        const userId = userByName.get(memberName)!;
+        runLogs.push({
+          userId,
+          deptSnapshot: team,
+          action: "agent_run",
+          targetType: "agent",
+          targetId: agentId,
+          targetLabel: agent.name,
+          createdAt: daysAgo(31 + Math.floor(Math.random() * 29), 9 + (i % 9)),
+        });
+      }
+      previousOffsetByTeam.set(team, offset + previousCount);
     }
   }
+
+  for (const [team, queue] of recentUserQueueByTeam) {
+    if (queue.length > 0) throw new Error(`팀 실행 분배가 완료되지 않았습니다: ${team} ${queue.length}회`);
+  }
   await db.auditLog.createMany({ data: runLogs });
-  console.log(`  실행 로그 ${runLogs.length}건`);
+  console.log(`  실행 로그 ${runLogs.length}건 · 최근 30일 ${[...recentRunsByTeam.values()].reduce((sum, count) => sum + count, 0)}건`);
+  console.log(`  활성 사용자 ${recentRunCountByUser.size}명 · 개인 최대 ${Math.max(...recentRunCountByUser.values())}회`);
 
   console.log("AI 생성 사용량 로그 생성 중...");
   const usageLogs = [];
@@ -258,6 +371,21 @@ async function main() {
     ["registration_warning", "고객 실명·계좌번호 등 민감정보는 에이전트 정의에 포함하지 마세요."],
     ["global_daily_call_limit", 5000],
     ["per_user_daily_call_limit", 100],
+    [
+      "division_headcount",
+      {
+        디지털부문: 138,
+        WM부문: 74,
+        홀세일부문: 58,
+        경영지원실: 46,
+        IB부문: 35,
+        상품전략실: 24,
+        리스크관리실: 27,
+        준법관리실: 19,
+        전략기획실: 22,
+        IT지원실: 16,
+      },
+    ],
   ];
   for (const [key, value] of settings) {
     await db.setting.upsert({
