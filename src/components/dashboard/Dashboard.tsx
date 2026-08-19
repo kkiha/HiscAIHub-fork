@@ -6,8 +6,8 @@ import type { SubscriptionDTO } from "@/lib/subscriptions";
 import KpiStrip from "./KpiStrip";
 import TeamShare from "./TeamShare";
 import TeamRanking from "./TeamRanking";
+import DivisionActivityPanel from "./DivisionActivityPanel";
 import SpreadPanel from "./SpreadPanel";
-import PeoplePanel from "./PeoplePanel";
 import CategoryPanel from "./CategoryPanel";
 import SubscriptionSection from "./SubscriptionSection";
 
@@ -66,8 +66,9 @@ export default function Dashboard() {
           <div>
             <h3>팀 · 임직원 활용도</h3>
             <p>
-              허브에서 발생한 활동입니다. 종합점수는 실행 60 · 등록 40 가중치로 계산하고 기간 내
-              최고값 기준으로 정규화합니다.
+              허브에서 발생한 활동입니다. 타팀까지 퍼진 에이전트는 게시된 전체 에이전트 중, 선택
+              기간에 등록 팀이 아닌 팀에서 1회 이상 실행된 건수입니다. 에이전트당 평균 실행 팀은
+              선택 기간에 1회 이상 실행된 에이전트만 대상으로 합니다.
             </p>
           </div>
           <div className="range-toggle">
@@ -90,8 +91,19 @@ export default function Dashboard() {
             <KpiStrip kpis={data.kpis} />
 
             <div className="dash-panel" style={{ marginBottom: 14 }}>
+              <div className="panel-head">부문별 허브 활성률</div>
+              <div className="panel-sub">
+                선택 기간에 허브에서 에이전트를 실행한 인원을 부문 총원과 비교합니다.
+              </div>
+              <DivisionActivityPanel
+                rows={data.divisionActivity.rows}
+                averageRate={data.divisionActivity.averageRate}
+              />
+            </div>
+
+            <div className="dash-panel" style={{ marginBottom: 14 }}>
               <div className="panel-head">팀별 활동 비중</div>
-              <div className="panel-sub">전체 활동(종합점수 합) 중 팀별 비중이에요.</div>
+              <div className="panel-sub">전체 실행 중 팀별 비중이에요.</div>
               <TeamShare teams={data.teams} />
             </div>
 
@@ -109,11 +121,12 @@ export default function Dashboard() {
             <div className="dash-panel" style={{ marginBottom: 14 }}>
               <div className="panel-head">에이전트 확산</div>
               <div className="panel-sub">
-                에이전트가 만든 팀 밖으로 얼마나 퍼졌는지예요. 막대는 등록 팀이 아닌 팀의 실행
-                비중입니다. 행을 누르면 어느 팀이 몇 번 실행했는지 펼쳐집니다.
+                에이전트가 만든 팀 밖으로 얼마나 퍼졌는지예요. 막대는 이 에이전트를 실행한 팀
+                수입니다. 행을 누르면 어느 팀이 몇 번 실행했는지 펼쳐집니다.
               </div>
               <SpreadPanel
                 spread={data.spread}
+                totalTeams={data.teams.length}
                 openId={openSpread}
                 onToggle={(id) => setOpenSpread(openSpread === id ? null : id)}
               />
@@ -123,20 +136,13 @@ export default function Dashboard() {
               </div>
             </div>
 
-            <div className="dash-2col">
-              <div className="dash-panel">
-                <div className="panel-head">파워 유저 · 임직원 랭킹</div>
-                <div className="panel-sub">이 기간에 가장 활발했던 임직원이에요.</div>
-                <PeoplePanel powerUser={data.powerUser} individuals={data.individuals} />
+            <div className="dash-panel">
+              <div className="panel-head">업무 유형별 등록 · 실행</div>
+              <div className="panel-sub">
+                등록 시 고른 카테고리 기준이에요. 실행이 0인 카테고리는 아직 쓰이지 않은
+                영역입니다.
               </div>
-              <div className="dash-panel">
-                <div className="panel-head">업무 유형별 등록 · 실행</div>
-                <div className="panel-sub">
-                  등록 시 고른 카테고리 기준이에요. 실행이 0인 카테고리는 아직 쓰이지 않은
-                  영역입니다.
-                </div>
-                <CategoryPanel rows={data.byCategory} savedHours={data.savedHours} />
-              </div>
+              <CategoryPanel rows={data.byCategory} savedHours={data.savedHours} />
             </div>
           </>
         )}

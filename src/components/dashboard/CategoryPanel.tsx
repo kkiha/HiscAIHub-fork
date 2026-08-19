@@ -28,9 +28,13 @@ export default function CategoryPanel({
         {rows.map((r) => (
           <div className="cat-row" key={r.cat}>
             <div className="nm">{r.cat}</div>
-            <div className="bar">
-              <i className="run" style={{ width: `${(r.runs / maxRuns) * 70}%` }} />
-              <i className="reg" style={{ width: `${(r.registrations / maxRegs) * 30}%` }} />
+            <div className="bar-group">
+              <div className="bar">
+                <i className="run" style={{ width: `${(r.runs / maxRuns) * 100}%` }} />
+              </div>
+              <div className="bar sub">
+                <i className="reg" style={{ width: `${(r.registrations / maxRegs) * 100}%` }} />
+              </div>
             </div>
             <div className="nums">
               실행 {r.runs} · 등록 {r.registrations}

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import type { AgentDTO } from "@/lib/agents";
-import { CATEGORIES, RUN_TYPES } from "@/lib/categories";
+import { CATEGORIES, CATEGORY_GUIDE, RUN_TYPES } from "@/lib/categories";
 import { TIME_BANDS } from "@/lib/time-band";
 import { ArrowLeftIcon } from "@/components/icons";
 
@@ -91,6 +91,7 @@ export default function AgentForm({ editing }: { editing: AgentDTO | null }) {
   const [section, setSection] = useState(1);
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  const selectedCategory = CATEGORY_GUIDE.find((category) => category.value === form.cat);
 
   const backHref = editing ? `/agents/${editing.id}` : "/";
 
@@ -211,8 +212,17 @@ export default function AgentForm({ editing }: { editing: AgentDTO | null }) {
                       </option>
                     ))}
                   </select>
+                  {selectedCategory && (
+                    <div className="hint">
+                      {selectedCategory.desc}
+                      <br />예: {selectedCategory.examples}
+                    </div>
+                  )}
                   <div className="hint">
                     업무 유형 기준이에요. 어떤 업무에 AI가 쓰이는지 집계하는 기준이 됩니다.
+                    <br />헷갈리면 「이 에이전트가 없으면 손으로 무슨 일을 하게 되나」를 떠올려
+                    보세요. 여러 개에 해당하면 <b>가장 마지막에 나오는 결과물</b>을 기준으로 골라
+                    주세요.
                   </div>
                 </div>
 

@@ -3,7 +3,13 @@
 /* 관리자 콘솔 — design-reference/prompthub-admin.html 이식. 9단계: 전 섹션 실 DB 연동. */
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { adminLogout } from "@/app/actions/auth";
+import { CATEGORY_GUIDE } from "@/lib/categories";
+
+const CATEGORY_DESC = new Map<string, string>(
+  CATEGORY_GUIDE.map((category) => [category.value, category.desc]),
+);
 
 const ICON: Record<string, string> = {
   content: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M8 13h8"/><path d="M8 17h5"/></svg>`,
@@ -161,7 +167,7 @@ export default function AdminConsole() {
           ))}
         </nav>
         <div className="side-foot">
-          <a href="/"><Ic name="back" /> 서비스로 돌아가기</a>
+          <Link href="/"><Ic name="back" /> 서비스로 돌아가기</Link>
           <form action={adminLogout}>
             <button type="submit"><Ic name="x" /> 로그아웃</button>
           </form>
@@ -462,9 +468,23 @@ function SettingsSection({
     <>
       <div className="set-block">
         <h3>카테고리 관리</h3>
-        <div className="desc">프롬프트·에이전트 등록 시 선택할 수 있는 카테고리예요.</div>
+        <div className="desc">
+          프롬프트·에이전트 등록 시 선택할 수 있는 카테고리예요.
+          <br />새 카테고리는 기존 5종과 산출물 기준으로 겹치지 않을 때만 추가해 주세요.
+        </div>
         <div className="chips">
-          {cats.map((c) => <span className="chip" key={c.id}>{c.name}<button className="cx" onClick={() => onRmCat(c.id)}><Ic name="x" /></button></span>)}
+          {cats.map((c) => {
+            const desc = CATEGORY_DESC.get(c.name);
+            return (
+              <span className="chip" key={c.id}>
+                <span style={{ display: "inline-flex", flexDirection: "column", gap: 1 }}>
+                  <span>{c.name}</span>
+                  {desc && <span style={{ color: "var(--text-3)", fontSize: 10 }}>{desc}</span>}
+                </span>
+                <button className="cx" onClick={() => onRmCat(c.id)}><Ic name="x" /></button>
+              </span>
+            );
+          })}
           <button className="chip-add" onClick={onAddCat}>+ 추가</button>
         </div>
       </div>
