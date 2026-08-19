@@ -6,10 +6,12 @@ const INITIAL_ROW_LIMIT = 10;
 /** 에이전트가 등록 팀 밖으로 얼마나 퍼졌는지. 퍼진 팀 수 → 타팀 비중 순으로 세운다. */
 export default function SpreadPanel({
   spread,
+  totalTeams,
   openId,
   onToggle,
 }: {
   spread: SpreadRow[];
+  totalTeams: number;
   openId: string | null;
   onToggle: (id: string) => void;
 }) {
@@ -33,6 +35,7 @@ export default function SpreadPanel({
             .map((t) => t.team)
             .join(" · ") + (s.byTeam.length > 2 ? ` 외 ${s.byTeam.length - 2}팀` : "");
         const max = s.byTeam[0]?.runs ?? 0;
+        const teamShare = totalTeams > 0 ? (s.teams / totalTeams) * 100 : 0;
 
         return (
           <div className="spread-row" key={s.id} onClick={() => onToggle(s.id)}>
@@ -42,11 +45,12 @@ export default function SpreadPanel({
                 <div className="sp-name">{s.name}</div>
                 <div className="sp-sub">{preview}</div>
               </div>
-              <div className="sp-teams">{s.teams}팀</div>
-              <div className="sp-bar">
-                <i style={{ width: `${s.outsidePct}%` }} />
+              <div className="sp-teams">
+                전체 {totalTeams}팀 중 {s.teams}팀
               </div>
-              <div className="sp-pct">타팀 {s.outsidePct}%</div>
+              <div className="sp-bar">
+                <i style={{ width: `${teamShare}%` }} />
+              </div>
             </div>
             {open && (
               <div className="drill">

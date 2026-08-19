@@ -96,7 +96,7 @@
 .spread-main { flex: 1; min-width: 0; }
 .sp-name { font-size: 12.5px; line-height: 1.4; }
 .sp-sub { font-size: 10.5px; color: var(--text-3); margin-top: 2px; }
-.sp-teams { font-size: 12px; font-weight: 600; width: 36px; text-align: right; flex-shrink: 0; }
+.sp-teams { font-size: 12px; font-weight: 600; width: 96px; text-align: right; flex-shrink: 0; white-space: nowrap; }
 .sp-bar { width: 84px; height: 6px; border-radius: 3px; background: var(--surface-2); overflow: hidden; flex-shrink: 0; }
 .sp-bar i { display: block; height: 100%; background: var(--org); border-radius: 3px; }
 .sp-pct { font-size: 10.5px; color: var(--text-3); width: 58px; text-align: right; flex-shrink: 0; }

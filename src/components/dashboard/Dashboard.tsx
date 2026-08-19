@@ -120,11 +120,12 @@ export default function Dashboard() {
             <div className="dash-panel" style={{ marginBottom: 14 }}>
               <div className="panel-head">에이전트 확산</div>
               <div className="panel-sub">
-                에이전트가 만든 팀 밖으로 얼마나 퍼졌는지예요. 막대는 등록 팀이 아닌 팀의 실행
-                비중입니다. 행을 누르면 어느 팀이 몇 번 실행했는지 펼쳐집니다.
+                에이전트가 만든 팀 밖으로 얼마나 퍼졌는지예요. 막대는 이 에이전트를 실행한 팀
+                수입니다. 행을 누르면 어느 팀이 몇 번 실행했는지 펼쳐집니다.
               </div>
               <SpreadPanel
                 spread={data.spread}
+                totalTeams={data.teams.length}
                 openId={openSpread}
                 onToggle={(id) => setOpenSpread(openSpread === id ? null : id)}
               />

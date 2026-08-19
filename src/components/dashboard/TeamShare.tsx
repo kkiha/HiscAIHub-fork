@@ -1,11 +1,17 @@
+import { useState } from "react";
 import type { TeamRow } from "@/lib/dashboard";
 import { rampColor } from "@/lib/subscription-tools";
 
 const R = 45;
 const C = 2 * Math.PI * R;
 const GAP = (C * 2.5) / 360; // 조각 사이 2.5°
+const DONUT_TEAM_LIMIT = 6;
+const INITIAL_ROW_LIMIT = 8;
+const OTHER_COLOR = "#D8D5CE";
 
-function Donut({ rows, total }: { rows: TeamRow[]; total: number }) {
+type DonutRow = Pick<TeamRow, "team" | "score"> & { color: string };
+
+function Donut({ rows, total, top }: { rows: DonutRow[]; total: number; top: TeamRow }) {
   // 조각의 시작 위치는 앞선 조각 길이의 누적합. 팀 수가 많지 않아 매번 앞을 더해도 충분하다.
   const lengths = rows.map((r) => C * (r.score / total));
 
@@ -19,7 +25,7 @@ function Donut({ rows, total }: { rows: TeamRow[]; total: number }) {
         cy="60"
         r={R}
         fill="none"
-        stroke={rampColor(i)}
+        stroke={r.color}
         strokeWidth="18"
         strokeDasharray={`${draw.toFixed(2)} ${(C - draw).toFixed(2)}`}
         strokeDashoffset={(-offset).toFixed(2)}
@@ -27,7 +33,6 @@ function Donut({ rows, total }: { rows: TeamRow[]; total: number }) {
     );
   });
 
-  const top = rows[0];
   return (
     <div className="donut-wrap">
       <svg viewBox="0 0 120 120" width="168" height="168">
@@ -44,17 +49,35 @@ function Donut({ rows, total }: { rows: TeamRow[]; total: number }) {
 
 /** 팀별 활동 비중 — 도넛 + 순위 목록. */
 export default function TeamShare({ teams }: { teams: TeamRow[] }) {
+  const [showAll, setShowAll] = useState(false);
+
   // 종합점수는 기간 내 최고값 기준 정규화라, 활동이 전혀 없으면 합이 0이 되어 비중을 낼 수 없다.
   const total = teams.reduce((sum, r) => sum + r.score, 0);
   if (!teams.length || total <= 0) {
     return <div className="panel-sub">이 기간에는 집계된 활동이 없어요.</div>;
   }
 
+  const remainingTeams = teams.slice(DONUT_TEAM_LIMIT);
+  const donutRows: DonutRow[] = teams.slice(0, DONUT_TEAM_LIMIT).map((team, i) => ({
+    ...team,
+    color: rampColor(i),
+  }));
+  if (remainingTeams.length > 0) {
+    donutRows.push({
+      team: `기타 ${remainingTeams.length}개 팀`,
+      score: remainingTeams.reduce((sum, team) => sum + team.score, 0),
+      color: OTHER_COLOR,
+    });
+  }
+
+  const hiddenCount = Math.max(0, teams.length - INITIAL_ROW_LIMIT);
+  const visibleTeams = showAll ? teams : teams.slice(0, INITIAL_ROW_LIMIT);
+
   return (
     <div className="donut-row">
-      <Donut rows={teams} total={total} />
+      <Donut rows={donutRows} total={total} top={teams[0]} />
       <div className="rank-list">
-        {teams.map((r, i) => (
+        {visibleTeams.map((r, i) => (
           <div className="rank-item" key={r.team}>
             <span className="rank-chip" style={{ background: rampColor(i) }} />
             <span className="rank-no">{i + 1}</span>
@@ -69,6 +92,16 @@ export default function TeamShare({ teams }: { teams: TeamRow[] }) {
             <div className="rank-share">{Math.round((r.score / total) * 100)}%</div>
           </div>
         ))}
+        {hiddenCount > 0 && (
+          <button
+            type="button"
+            className="spread-more"
+            aria-expanded={showAll}
+            onClick={() => setShowAll((value) => !value)}
+          >
+            나머지 {hiddenCount}개 팀 {showAll ? "접기" : "더보기"}
+          </button>
+        )}
       </div>
     </div>
   );
