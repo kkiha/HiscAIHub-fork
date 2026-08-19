@@ -56,6 +56,13 @@ export type TeamRow = {
   delta: number | null;
 };
 
+export type DivisionActivityRow = {
+  division: string;
+  activeUsers: number;
+  headcount: number | null;
+  activeRate: number | null;
+};
+
 export type PersonRow = {
   id: string;
   name: string;
